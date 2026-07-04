@@ -2,6 +2,7 @@ import { useState } from "react";
 import { pets, breeds } from "../data/mockData";
 import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
+import Icon from "../components/icons/Icons";
 
 export default function Passport() {
   const [selectedPet, setSelectedPet] = useState(pets[0]);
@@ -25,8 +26,9 @@ export default function Passport() {
         <button
           type="button"
           onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
-          className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl transition-colors text-sm self-start"
+          className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl transition-colors text-sm self-start"
         >
+          <Icon name={isEditing ? "check" : "edit"} size={18} />
           {isEditing ? "Guardar cambios" : "Editar perfil"}
         </button>
       </header>
@@ -37,20 +39,22 @@ export default function Passport() {
             key={pet.id}
             type="button"
             onClick={() => { setSelectedPet(pet); setForm({ ...pet }); setIsEditing(false); }}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
               selectedPet.id === pet.id
                 ? "bg-emerald-500 text-white"
                 : "bg-white text-slate-600 border border-slate-200 hover:border-emerald-300"
             }`}
           >
-            {pet.avatar} {pet.name}
+            <Icon name={pet.icon} size={16} className={selectedPet.id === pet.id ? "text-white" : "text-emerald-600"} />
+            {pet.name}
           </button>
         ))}
         <button
           type="button"
-          className="px-4 py-2 rounded-xl text-sm font-semibold bg-white text-emerald-600 border border-dashed border-emerald-300 hover:bg-emerald-50 transition-all"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-white text-emerald-600 border border-dashed border-emerald-300 hover:bg-emerald-50 transition-all"
         >
-          + Nueva mascota
+          <Icon name="plus" size={16} />
+          Nueva mascota
         </button>
       </div>
 
@@ -58,7 +62,7 @@ export default function Passport() {
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="h-32 bg-gradient-to-r from-emerald-400 to-teal-500" />
           <div className="px-6 pb-6 -mt-12">
-            <Avatar emoji={selectedPet.avatar} size="xl" color={selectedPet.color} />
+            <Avatar icon={selectedPet.icon} size="xl" color={selectedPet.color} />
             <div className="mt-4">
               {isEditing ? (
                 <div className="space-y-3">
@@ -105,9 +109,9 @@ export default function Passport() {
                 <p className="text-2xl font-bold text-slate-800">{selectedPet.followers}</p>
                 <p className="text-xs text-slate-400">Seguidores</p>
               </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-slate-800">✓</p>
-                <p className="text-xs text-slate-400">Verificado</p>
+              <div className="text-center flex flex-col items-center">
+                <Icon name="check" size={28} className="text-emerald-500" />
+                <p className="text-xs text-slate-400 mt-1">Verificado</p>
               </div>
             </div>
           </div>
@@ -140,12 +144,17 @@ export default function Passport() {
           </div>
 
           <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-5">
-            <h3 className="font-bold text-emerald-800 mb-2">Pasaporte digital</h3>
+            <div className="flex items-center gap-2 mb-2">
+              <Icon name="passport" size={20} className="text-emerald-700" />
+              <h3 className="font-bold text-emerald-800">Pasaporte digital</h3>
+            </div>
             <p className="text-sm text-emerald-700">
               ID: PC-{String(selectedPet.id).padStart(6, "0")}
             </p>
-            <div className="mt-3 h-16 bg-white rounded-lg flex items-center justify-center text-4xl tracking-widest opacity-60">
-              ▮▮▮▮▮▮
+            <div className="mt-3 h-16 bg-white rounded-lg flex items-center justify-center gap-1 opacity-60">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <span key={i} className="w-1 h-10 bg-slate-400 rounded-full" style={{ height: `${20 + (i % 3) * 12}px` }} />
+              ))}
             </div>
           </div>
         </div>

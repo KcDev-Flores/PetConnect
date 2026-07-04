@@ -3,6 +3,7 @@ import { lostReports, estimateLocation } from "../data/mockData";
 import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
 import SightingMap from "../components/ui/SightingMap";
+import Icon from "../components/icons/Icons";
 
 export default function Emergency() {
   const [reports, setReports] = useState(lostReports);
@@ -48,9 +49,10 @@ export default function Emergency() {
         </div>
         <button
           type="button"
-          className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-colors text-sm self-start"
+          className="flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-colors text-sm self-start"
         >
-          🚨 Reportar mascota perdida
+          <Icon name="alert" size={18} />
+          Reportar mascota perdida
         </button>
       </header>
 
@@ -69,7 +71,7 @@ export default function Emergency() {
               }`}
             >
               <div className="flex items-center gap-3">
-                <Avatar emoji={report.avatar} size="sm" />
+                <Avatar icon={report.icon} size="sm" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-slate-800">{report.petName}</h3>
@@ -86,7 +88,7 @@ export default function Emergency() {
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-start gap-4 mb-6">
-              <Avatar emoji={selectedReport.avatar} size="lg" />
+              <Avatar icon={selectedReport.icon} size="lg" />
               <div>
                 <h2 className="text-xl font-bold text-slate-800">{selectedReport.petName}</h2>
                 <p className="text-emerald-600 font-medium">{selectedReport.breed} · {selectedReport.species}</p>
@@ -109,7 +111,10 @@ export default function Emergency() {
 
             {estimated && (
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-6">
-                <p className="text-sm font-semibold text-amber-800">📍 Triangulación estimada</p>
+                <p className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                  <Icon name="pin" size={18} />
+                  Triangulación estimada
+                </p>
                 <p className="text-sm text-amber-700 mt-1">
                   Según los avistamientos, {selectedReport.petName} podría estar cerca de{" "}
                   <strong>{selectedReport.lastSeen}</strong>. Radio de búsqueda sugerido: ~{Math.round(estimated.radius * 50)}m
@@ -122,9 +127,10 @@ export default function Emergency() {
               <button
                 type="button"
                 onClick={() => setShowForm(!showForm)}
-                className="text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+                className="flex items-center gap-1 text-sm font-semibold text-emerald-600 hover:text-emerald-700"
               >
-                + Reportar avistamiento
+                <Icon name="plus" size={16} />
+                Reportar avistamiento
               </button>
             </div>
 
@@ -155,8 +161,8 @@ export default function Emergency() {
             <div className="space-y-3">
               {selectedReport.sightings.map((s) => (
                 <div key={s.id} className="flex gap-3 p-4 bg-slate-50 rounded-xl">
-                  <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center text-sm shrink-0">
-                    📍
+                  <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center shrink-0 text-red-500">
+                    <Icon name="pin" size={16} />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -172,14 +178,16 @@ export default function Emergency() {
             <div className="mt-6 pt-6 border-t border-slate-100 flex flex-wrap gap-3">
               <a
                 href={`tel:${selectedReport.phone}`}
-                className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl text-sm transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl text-sm transition-colors"
               >
-                📞 Contactar dueño
+                <Icon name="phone" size={18} />
+                Contactar dueño
               </a>
               <button
                 type="button"
-                className="px-5 py-2.5 bg-white border border-slate-200 hover:border-emerald-300 text-slate-700 font-semibold rounded-xl text-sm transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-emerald-300 text-slate-700 font-semibold rounded-xl text-sm transition-colors"
               >
+                <Icon name="share" size={18} />
                 Compartir alerta
               </button>
             </div>

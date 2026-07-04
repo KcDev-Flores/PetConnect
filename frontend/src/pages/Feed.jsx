@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { posts } from "../data/mockData";
+import { posts, pets } from "../data/mockData";
 import PostCard from "../components/ui/PostCard";
+import Avatar from "../components/ui/Avatar";
+import Icon from "../components/icons/Icons";
 
 export default function Feed() {
   const [newPost, setNewPost] = useState("");
   const [feedPosts, setFeedPosts] = useState(posts);
+  const activePet = pets[0];
 
   const handlePublish = (e) => {
     e.preventDefault();
@@ -13,8 +16,8 @@ export default function Feed() {
     setFeedPosts([
       {
         id: Date.now(),
-        petName: "Max",
-        avatar: "🐕",
+        petName: activePet.name,
+        icon: activePet.icon,
         content: newPost,
         likes: 0,
         comments: 0,
@@ -34,7 +37,7 @@ export default function Feed() {
 
       <form onSubmit={handlePublish} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
         <div className="flex gap-3">
-          <span className="text-3xl">🐕</span>
+          <Avatar icon={activePet.icon} size="sm" color={activePet.color} />
           <textarea
             value={newPost}
             onChange={(e) => setNewPost(e.target.value)}
@@ -44,9 +47,15 @@ export default function Feed() {
           />
         </div>
         <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-50">
-          <div className="flex gap-2 text-sm text-slate-400">
-            <button type="button" className="hover:text-emerald-500 transition-colors">📷 Foto</button>
-            <button type="button" className="hover:text-emerald-500 transition-colors">📍 Ubicación</button>
+          <div className="flex gap-4 text-sm text-slate-400">
+            <button type="button" className="flex items-center gap-1.5 hover:text-emerald-500 transition-colors">
+              <Icon name="camera" size={18} />
+              Foto
+            </button>
+            <button type="button" className="flex items-center gap-1.5 hover:text-emerald-500 transition-colors">
+              <Icon name="pin" size={18} />
+              Ubicación
+            </button>
           </div>
           <button
             type="submit"

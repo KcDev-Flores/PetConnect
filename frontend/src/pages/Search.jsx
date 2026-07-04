@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { breeds, pets } from "../data/mockData";
 import PetCard from "../components/ui/PetCard";
 import Badge from "../components/ui/Badge";
+import Icon from "../components/icons/Icons";
 
 export default function Search() {
   const [query, setQuery] = useState("");
@@ -39,7 +40,9 @@ export default function Search() {
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-4">
         <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+            <Icon name="search" size={20} />
+          </span>
           <input
             type="text"
             value={query}
@@ -87,7 +90,10 @@ export default function Search() {
               key={breed.id}
               className="bg-white rounded-xl border border-slate-100 p-4 hover:border-emerald-200 hover:shadow-sm transition-all cursor-pointer"
             >
-              <p className="font-semibold text-slate-800">{breed.name}</p>
+              <div className="flex items-center gap-2 mb-1">
+                <Icon name={breed.species === "Gato" ? "cat" : "dog"} size={18} className="text-emerald-600" />
+                <p className="font-semibold text-slate-800">{breed.name}</p>
+              </div>
               <div className="flex gap-1.5 mt-2">
                 <Badge variant="info">{breed.species}</Badge>
                 <Badge>{breed.size}</Badge>

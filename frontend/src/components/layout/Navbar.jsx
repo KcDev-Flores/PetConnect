@@ -1,19 +1,20 @@
 import { NavLink, Link } from "react-router-dom";
+import Icon, { Logo } from "../icons/Icons";
 
 const links = [
-  { to: "/", label: "Feed", icon: "🏠", end: true },
-  { to: "/passport", label: "Pasaporte", icon: "📋" },
-  { to: "/emergency", label: "Emergencia", icon: "🚨" },
-  { to: "/search", label: "Buscar", icon: "🔍" },
-  { to: "/profile", label: "Perfil", icon: "👤" },
+  { to: "/", label: "Feed", icon: "home", end: true },
+  { to: "/passport", label: "Pasaporte", icon: "passport" },
+  { to: "/emergency", label: "Emergencia", icon: "alert" },
+  { to: "/search", label: "Buscar", icon: "search" },
+  { to: "/profile", label: "Perfil", icon: "user" },
 ];
 
 export default function Navbar() {
   return (
     <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-sm">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 font-bold text-xl text-emerald-600 hover:text-emerald-700 transition-colors">
-          <span className="text-2xl">🐾</span>
+        <Link to="/" className="flex items-center gap-2.5 font-bold text-xl text-emerald-600 hover:text-emerald-700 transition-colors">
+          <Logo size={36} />
           PetConnect
         </Link>
 
@@ -31,7 +32,7 @@ export default function Navbar() {
                 }`
               }
             >
-              <span>{icon}</span>
+              <Icon name={icon} size={18} />
               {label}
             </NavLink>
           ))}
@@ -57,7 +58,7 @@ export default function Navbar() {
               }`
             }
           >
-            <span className="text-lg">{icon}</span>
+            <Icon name={icon} size={22} />
             {label}
           </NavLink>
         ))}
