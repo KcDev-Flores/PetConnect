@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { currentUser, pets } from "../data/mockData";
+import { useProfile } from "../hooks/useProfile";
 import Avatar from "../components/ui/Avatar";
 import PetCard from "../components/ui/PetCard";
 import Icon from "../components/icons/Icons";
@@ -11,7 +11,7 @@ const activityItems = [
 ];
 
 export default function Profile() {
-  const userPets = pets.filter((p) => currentUser.pets.includes(p.id));
+  const { currentUser, userPets } = useProfile();
 
   return (
     <div className="space-y-6">

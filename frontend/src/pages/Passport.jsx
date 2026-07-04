@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { pets, breeds } from "../data/mockData";
+import { usePets } from "../hooks/usePets";
 import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
 import Icon from "../components/icons/Icons";
@@ -36,14 +36,32 @@ function PetModelStage({ pet }) {
 }
 
 export default function Passport() {
-  const [selectedPet, setSelectedPet] = useState(pets[0]);
+  const { pets, breeds, savePet, loading } = usePets();
+  const [selectedPet, setSelectedPet] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState({ ...selectedPet });
+  const [form, setForm] = useState(null);
 
-  const handleSave = () => {
+  // Initialize selected pet once pets are loaded
+  if (!selectedPet && pets.length > 0) {
+    setSelectedPet(pets[0]);
+    setForm({ ...pets[0] });
+  }
+
+  const handleSave = async () => {
+    await savePet(form);
     setSelectedPet({ ...form });
     setIsEditing(false);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p className="text-slate-400">Cargando pasaportes...</p>
+      </div>
+    );
+  }
+
+  if (!selectedPet) return null;
 
   const breedInfo = breeds.find((b) => b.name === selectedPet.breed);
 
