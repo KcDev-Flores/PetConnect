@@ -142,6 +142,7 @@ export const currentUser = {
   email: "maria@email.com",
   icon: "user",
   location: "San Salvador, El Salvador",
+  phone: "+503 7000-0000",
   joined: "Marzo 2026",
   pets: [1],
 };

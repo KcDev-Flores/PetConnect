@@ -9,7 +9,15 @@ export default function PetCard({ pet, onClick }) {
       className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 text-left w-full hover:shadow-md hover:border-emerald-200 transition-all group"
     >
       <div className="flex items-start gap-4">
-        <Avatar icon={pet.icon} size="lg" color={pet.color} />
+        {pet.photoUrl ? (
+          <img
+            src={pet.photoUrl}
+            alt={pet.name}
+            className="h-20 w-20 shrink-0 rounded-2xl object-cover shadow-md"
+          />
+        ) : (
+          <Avatar icon={pet.icon} size="lg" color={pet.color} />
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-bold text-lg text-slate-800 group-hover:text-emerald-600 transition-colors">
