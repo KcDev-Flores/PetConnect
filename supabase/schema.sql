@@ -14,25 +14,14 @@
 --   * Enum VALUES are kept in Spanish ('Perro', 'Gato', 'activo', ...)
 --     on purpose, because the frontend (P1/P2) already uses those
 --     exact strings in mockData.js. Do NOT translate them.
---
--- Tables:
---   1. users        (registered owners)
---   2. pets         (pet profile / passport basics)
---   3. vaccines     (vaccines the pet has received)
---   4. vet_records  (vet visits: clinic, illness, notes)
---   5. posts        (social feed)
---   6. lost_pets    (emergency reports)
---   7. sightings    (lost pet sightings)
---   8. breeds       (reference catalog)
 -- ============================================================
-
 
 -- 1. EXTENSIONS (UUID generation)
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 
 -- ============================================================
--- 1. users (registered owners)
+-- 1. TABLE: users (registered owners)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS users (
   id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -46,7 +35,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 
 -- ============================================================
--- 2. pets (pet profile / passport basics)
+-- 2. TABLE: pets (pet profile / passport basics)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS pets (
   id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -67,7 +56,7 @@ CREATE TABLE IF NOT EXISTS pets (
 
 
 -- ============================================================
--- 3. vaccines (vaccines the pet has received)
+-- 3. TABLE: vaccines (vaccines the pet has received)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS vaccines (
   id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -82,7 +71,7 @@ CREATE TABLE IF NOT EXISTS vaccines (
 
 
 -- ============================================================
--- 4. vet_records (vet visits: clinic, illness, notes)
+-- 4. TABLE: vet_records (vet visits: clinic, illness, notes)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS vet_records (
   id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -98,7 +87,7 @@ CREATE TABLE IF NOT EXISTS vet_records (
 
 
 -- ============================================================
--- 5. posts (social feed)
+-- 5. TABLE: posts (social feed)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS posts (
   id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -112,10 +101,23 @@ CREATE TABLE IF NOT EXISTS posts (
 
 
 -- ============================================================
--- 6. lost_pets (emergency reports)
+-- 6. TABLE: comments (social feed comments)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS comments (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  post_id     UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  author_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content     TEXT NOT NULL,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+
+-- ============================================================
+-- 7. TABLE: lost_pets (emergency reports)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS lost_pets (
   id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  pet_id          UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE, -- Relación directa con la mascota original
   pet_name        TEXT NOT NULL,
   breed           TEXT,
   species         TEXT CHECK (species IN ('Perro', 'Gato', 'Otro')) DEFAULT 'Perro',
@@ -129,44 +131,3 @@ CREATE TABLE IF NOT EXISTS lost_pets (
   photo_url       TEXT,
   created_at      TIMESTAMPTZ DEFAULT now()
 );
-
-
--- ============================================================
--- 7. sightings (lost pet sightings)
--- ============================================================
-CREATE TABLE IF NOT EXISTS sightings (
-  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  report_id   UUID NOT NULL REFERENCES lost_pets(id) ON DELETE CASCADE,
-  comment     TEXT NOT NULL,
-  location    TEXT,                         -- free-text location
-  lat         FLOAT,                        -- map coordinate (Y)
-  lng         FLOAT,                         -- map coordinate (X)
-  author      TEXT DEFAULT 'Anónimo',
-  confidence  FLOAT DEFAULT 0.7,
-  created_at  TIMESTAMPTZ DEFAULT now()
-);
-
-
--- ============================================================
--- 8. breeds (reference catalog)
--- ============================================================
-CREATE TABLE IF NOT EXISTS breeds (
-  id      SERIAL PRIMARY KEY,
-  name    TEXT NOT NULL UNIQUE,
-  species TEXT CHECK (species IN ('Perro', 'Gato', 'Otro')),
-  size    TEXT,
-  origin  TEXT
-);
-
-INSERT INTO breeds (name, species, size, origin) VALUES
-  ('Golden Retriever', 'Perro',  'Grande',   'Reino Unido'),
-  ('Siamés',           'Gato',   'Mediano',  'Tailandia'),
-  ('Labrador',         'Perro',  'Grande',   'Canadá'),
-  ('Persa',            'Gato',   'Mediano',  'Irán'),
-  ('Bulldog Francés',  'Perro',  'Pequeño',  'Francia'),
-  ('Maine Coon',       'Gato',   'Grande',   'Estados Unidos'),
-  ('Beagle',           'Perro',  'Mediano',  'Reino Unido'),
-  ('Husky Siberiano',  'Perro',  'Grande',   'Rusia'),
-  ('Chihuahua',        'Perro',  'Pequeño',  'México'),
-  ('Mestizo',          'Perro',  'Mediano',  'El Salvador')
-ON CONFLICT (name) DO NOTHING;
