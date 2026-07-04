@@ -4,6 +4,37 @@ import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
 import Icon from "../components/icons/Icons";
 
+function PetModelStage({ pet }) {
+  return (
+    <section className="rounded-3xl border border-slate-100 bg-slate-950 p-4 shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">R3F ready</p>
+          <h3 className="text-white font-bold">Modelo 3D</h3>
+        </div>
+        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-white/10 text-emerald-200">
+          <Icon name="spark" size={20} />
+        </div>
+      </div>
+
+      <div
+        id="pet-r3f-stage"
+        data-r3f-ready="true"
+        className="relative grid aspect-[4/5] min-h-[300px] place-items-center overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_50%_28%,rgba(16,185,129,0.38),transparent_34%),linear-gradient(145deg,#0f172a,#111827_45%,#042f2e)]"
+      >
+        <div className="absolute inset-x-8 bottom-10 h-14 rounded-full bg-emerald-300/20 blur-xl" />
+        <div className="relative grid h-40 w-40 place-items-center rounded-[2rem] border border-white/15 bg-white/10 text-emerald-100 shadow-2xl backdrop-blur">
+          <Icon name={pet.icon} size={78} />
+        </div>
+        <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/10 bg-white/10 p-3 text-white backdrop-blur">
+          <p className="text-sm font-bold">{pet.name}</p>
+          <p className="text-xs text-slate-300">{pet.breed}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Passport() {
   const [selectedPet, setSelectedPet] = useState(pets[0]);
   const [isEditing, setIsEditing] = useState(false);
@@ -60,7 +91,9 @@ export default function Passport() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="h-32 bg-gradient-to-r from-emerald-400 to-teal-500" />
+          <div className="h-36 bg-gradient-to-r from-emerald-400 via-sky-400 to-slate-800 relative overflow-hidden">
+            <div className="absolute inset-0 opacity-30 bg-[linear-gradient(120deg,transparent_0%,white_45%,transparent_70%)]" />
+          </div>
           <div className="px-6 pb-6 -mt-12">
             <Avatar icon={selectedPet.icon} size="xl" color={selectedPet.color} />
             <div className="mt-4">
@@ -101,23 +134,25 @@ export default function Passport() {
             </div>
 
             <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-100">
-              <div className="text-center">
+              <div className="rounded-2xl bg-slate-50 p-4 text-center">
                 <p className="text-2xl font-bold text-slate-800">{selectedPet.posts}</p>
                 <p className="text-xs text-slate-400">Publicaciones</p>
               </div>
-              <div className="text-center">
+              <div className="rounded-2xl bg-slate-50 p-4 text-center">
                 <p className="text-2xl font-bold text-slate-800">{selectedPet.followers}</p>
                 <p className="text-xs text-slate-400">Seguidores</p>
               </div>
-              <div className="text-center flex flex-col items-center">
+              <div className="rounded-2xl bg-emerald-50 p-4 text-center flex flex-col items-center">
                 <Icon name="check" size={28} className="text-emerald-500" />
-                <p className="text-xs text-slate-400 mt-1">Verificado</p>
+                <p className="text-xs text-emerald-700 mt-1 font-semibold">Verificado</p>
               </div>
             </div>
           </div>
         </div>
 
         <div className="space-y-4">
+          <PetModelStage pet={selectedPet} />
+
           {breedInfo && (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
               <h3 className="font-bold text-slate-800 mb-3">Info de la raza</h3>
@@ -151,10 +186,8 @@ export default function Passport() {
             <p className="text-sm text-emerald-700">
               ID: PC-{String(selectedPet.id).padStart(6, "0")}
             </p>
-            <div className="mt-3 h-16 bg-white rounded-lg flex items-center justify-center gap-1 opacity-60">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <span key={i} className="w-1 h-10 bg-slate-400 rounded-full" style={{ height: `${20 + (i % 3) * 12}px` }} />
-              ))}
+            <div className="mt-3 h-16 bg-white rounded-lg flex items-center justify-center text-emerald-700">
+              <Icon name="qr" size={42} />
             </div>
           </div>
         </div>

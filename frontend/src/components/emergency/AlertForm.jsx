@@ -20,13 +20,13 @@ export default function AlertForm({
         <Icon name="alert" size={22} className="text-red-500" />
         <div>
           <h2 className="font-bold text-slate-800">Reportar mascota perdida</h2>
-          <p className="text-xs text-slate-500">La foto será analizada por IA (Fal) vía n8n</p>
+          <p className="text-xs text-slate-500">UI lista para integracion con IA y n8n</p>
         </div>
       </div>
 
       <PhotoUploadZone
         label="Foto de la mascota *"
-        hint="Sube la foto más reciente — clave para el matching"
+        hint="Sube la foto mas reciente para mejorar el matching"
         previewUrl={values.photoPreview}
         onSelect={onPhotoSelect}
         onRemove={onPhotoRemove}

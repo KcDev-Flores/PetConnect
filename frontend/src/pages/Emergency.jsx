@@ -4,14 +4,61 @@ import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
 import SightingMap from "../components/ui/SightingMap";
 import Icon from "../components/icons/Icons";
+import AlertForm from "../components/emergency/AlertForm";
+
+const emptyAlert = {
+  petName: "",
+  species: "Perro",
+  breed: "",
+  description: "",
+  lastSeen: "",
+  lastSeenDate: "",
+  phone: "",
+  reward: "",
+  photoPreview: "",
+};
 
 export default function Emergency() {
   const [reports, setReports] = useState(lostReports);
   const [selectedReport, setSelectedReport] = useState(lostReports[0]);
   const [newSighting, setNewSighting] = useState({ comment: "", location: "" });
   const [showForm, setShowForm] = useState(false);
+  const [alertDraft, setAlertDraft] = useState(emptyAlert);
 
   const estimated = estimateLocation(selectedReport.sightings);
+
+  const handlePhotoSelect = (file) => {
+    if (!file) return;
+    setAlertDraft((current) => ({
+      ...current,
+      photoPreview: URL.createObjectURL(file),
+    }));
+  };
+
+  const handleAlertSubmit = (e) => {
+    e.preventDefault();
+
+    const report = {
+      id: Date.now(),
+      petName: alertDraft.petName || "Mascota sin nombre",
+      breed: alertDraft.breed || "Raza por confirmar",
+      species: alertDraft.species,
+      icon: alertDraft.species === "Gato" ? "cat" : "dog",
+      description: alertDraft.description || "Descripcion pendiente.",
+      lastSeen: alertDraft.lastSeen || "Ubicacion pendiente",
+      lastSeenDate: alertDraft.lastSeenDate || "Hoy",
+      reward: alertDraft.reward || null,
+      status: "activo",
+      owner: "Contacto de emergencia",
+      phone: alertDraft.phone,
+      sightings: [],
+    };
+
+    setReports((current) => [report, ...current]);
+    setSelectedReport(report);
+    setAlertDraft(emptyAlert);
+    setShowForm(false);
+  };
 
   const handleAddSighting = (e) => {
     e.preventDefault();
@@ -49,12 +96,47 @@ export default function Emergency() {
         </div>
         <button
           type="button"
+          onClick={() => setShowForm((current) => !current)}
           className="flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-colors text-sm self-start"
         >
           <Icon name="alert" size={18} />
           Reportar mascota perdida
         </button>
       </header>
+
+      {showForm && (
+        <div className="grid xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+          <AlertForm
+            values={alertDraft}
+            onChange={setAlertDraft}
+            onPhotoSelect={handlePhotoSelect}
+            onPhotoRemove={() => setAlertDraft((current) => ({ ...current, photoPreview: "" }))}
+            onSubmit={handleAlertSubmit}
+            breedOptions={[]}
+          />
+          <aside className="rounded-2xl border border-red-100 bg-red-50 p-5">
+            <div className="flex items-center gap-3">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-red-500">
+                <Icon name="clock" size={22} />
+              </div>
+              <div>
+                <h2 className="font-bold text-red-900">Entrega visual P1</h2>
+                <p className="text-sm text-red-700">Formulario listo para que Persona 2 conecte Zustand y n8n.</p>
+              </div>
+            </div>
+            <div className="mt-4 space-y-3 text-sm text-red-800">
+              <p className="flex gap-2">
+                <Icon name="camera" size={18} className="mt-0.5 shrink-0" />
+                Foto principal preparada para analisis visual.
+              </p>
+              <p className="flex gap-2">
+                <Icon name="map" size={18} className="mt-0.5 shrink-0" />
+                Campos listos para ubicacion, fecha y contacto.
+              </p>
+            </div>
+          </aside>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="space-y-3">

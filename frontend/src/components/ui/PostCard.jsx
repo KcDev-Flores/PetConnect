@@ -1,5 +1,4 @@
 import Avatar from "../ui/Avatar";
-import Badge from "../ui/Badge";
 import Icon from "../icons/Icons";
 
 export default function PostCard({ post, onLike, onComment, onShare }) {

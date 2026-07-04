@@ -22,7 +22,7 @@ function Svg({ size = 20, className = "", children, ...props }) {
   );
 }
 
-export const icons = {
+const icons = {
   home: (p) => (
     <Svg {...p}>
       <path d="M3 10.5 12 3l9 7.5" />
@@ -167,6 +167,58 @@ export const icons = {
   activity: (p) => (
     <Svg {...p}>
       <path d="M4 12h3l2-7 4 14 2-7h5" />
+    </Svg>
+  ),
+  more: (p) => (
+    <Svg {...p}>
+      <circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="1" fill="currentColor" stroke="none" />
+    </Svg>
+  ),
+  calendar: (p) => (
+    <Svg {...p}>
+      <rect x="4" y="5" width="16" height="15" rx="2" />
+      <path d="M8 3v4M16 3v4M4 10h16" />
+    </Svg>
+  ),
+  shield: (p) => (
+    <Svg {...p}>
+      <path d="M12 3 19 6v5c0 4.5-2.8 7.8-7 10-4.2-2.2-7-5.5-7-10V6l7-3z" />
+      <path d="m9 12 2 2 4-5" />
+    </Svg>
+  ),
+  map: (p) => (
+    <Svg {...p}>
+      <path d="m9 18-5 2V6l5-2 6 2 5-2v14l-5 2-6-2z" />
+      <path d="M9 4v14M15 6v14" />
+    </Svg>
+  ),
+  upload: (p) => (
+    <Svg {...p}>
+      <path d="M12 16V4" />
+      <path d="m7 9 5-5 5 5" />
+      <path d="M5 20h14" />
+    </Svg>
+  ),
+  clock: (p) => (
+    <Svg {...p}>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 8v5l3 2" />
+    </Svg>
+  ),
+  spark: (p) => (
+    <Svg {...p}>
+      <path d="M12 3 14 9l6 3-6 3-2 6-2-6-6-3 6-3 2-6z" />
+      <path d="M19 4v4M17 6h4M5 17v3M3.5 18.5h3" />
+    </Svg>
+  ),
+  qr: (p) => (
+    <Svg {...p}>
+      <rect x="4" y="4" width="5" height="5" rx="1" />
+      <rect x="15" y="4" width="5" height="5" rx="1" />
+      <rect x="4" y="15" width="5" height="5" rx="1" />
+      <path d="M14 14h2v2h-2zM18 14h2M14 18h6M12 4v3M12 10v2M4 12h4M10 20v-4" />
     </Svg>
   ),
 };

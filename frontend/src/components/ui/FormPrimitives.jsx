@@ -25,11 +25,11 @@ export function PhotoUploadZone({
       ) : (
         <label className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors cursor-pointer aspect-video max-h-56 p-6">
           <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-emerald-500">
-            <Icon name="camera" size={28} />
+            <Icon name="upload" size={28} />
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold text-slate-700">{hint}</p>
-            <p className="text-xs text-slate-400 mt-1">JPG, PNG — máx. 10 MB</p>
+            <p className="text-xs text-slate-400 mt-1">JPG, PNG, max. 10 MB</p>
           </div>
           <input
             type="file"
