@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import Icon, { Logo } from "../components/icons/Icons";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -16,8 +17,9 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 text-white font-bold text-3xl">
-            <span>🐾</span> PetConnect
+          <Link to="/" className="inline-flex flex-col items-center gap-3 text-white">
+            <Logo size={80} className="drop-shadow-lg" />
+            <span className="font-bold text-2xl">PetConnect</span>
           </Link>
           <p className="text-emerald-100 mt-2">La red social para tu mascota</p>
         </div>
@@ -34,34 +36,49 @@ export default function Login() {
             {isRegister && (
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Nombre</label>
-                <input
-                  type="text"
-                  placeholder="Tu nombre"
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-300 focus:border-emerald-300 outline-none"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Icon name="user" size={18} />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Tu nombre"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-300 focus:border-emerald-300 outline-none"
+                  />
+                </div>
               </div>
             )}
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Correo electrónico</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@email.com"
-                required
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-300 focus:border-emerald-300 outline-none"
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <Icon name="mail" size={18} />
+                </span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tu@email.com"
+                  required
+                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-300 focus:border-emerald-300 outline-none"
+                />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Contraseña</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-300 focus:border-emerald-300 outline-none"
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <Icon name="lock" size={18} />
+                </span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-300 focus:border-emerald-300 outline-none"
+                />
+              </div>
             </div>
 
             <button

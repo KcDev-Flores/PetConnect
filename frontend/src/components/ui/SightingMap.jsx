@@ -33,7 +33,7 @@ export default function SightingMap({ sightings, estimated }) {
         />
       )}
 
-      {sightings.map((s, i) => (
+      {sightings.map((s) => (
         <div
           key={s.id}
           className="absolute z-20 group"
