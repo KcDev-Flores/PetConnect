@@ -1,13 +1,14 @@
 # PetConnect — Supabase (P5)
 
 Data contract for the project. P3 wires the n8n flows to these tables.
+Simple by design: the DB just stores what the user enters; the frontend shows it.
 
 ## Files
 
 | File | What it does | When to run |
 |---|---|---|
-| `schema.sql` | Creates all tables, the vaccine catalog, the `pet_travel_status` view and indexes. | First. Always. |
-| `seed.sql` | Inserts demo data mirroring `frontend/src/data/mockData.js`. | Optional. Only for testing without real data. |
+| `schema.sql` | Creates all tables (+ breeds catalog). | First. Always. |
+| `seed.sql` | Demo data mirroring `frontend/src/data/mockData.js`. | Optional, for testing. |
 
 ## How to run
 
@@ -19,34 +20,26 @@ Both files are safe to re-run (`IF NOT EXISTS` / `ON CONFLICT DO NOTHING`).
 
 ## Tables
 
-- `users` — registered owners (`password_hash` is never sent to the frontend).
-- `pets` — registered pets + **digital passport** (microchip, passport number, sex, weight, sterilized, country).
-- `vaccine_catalog` — reference list of common vaccines per species; `required_for_travel` flags the ones needed to travel.
-- `vaccines` — per-pet vaccination records.
-- `vet_records` — per-pet veterinary visits / clinic data.
+- `users` — registered owners (`password_hash` never sent to the frontend).
+- `pets` — pet profile: name, breed, species, age, sex, color, weight, bio, photo.
+- `vaccines` — vaccines the pet received (name, date, next dose, vet, notes).
+- `vet_records` — vet visits: clinic, vet, `condition` (enfermedad/diagnóstico), notes.
 - `posts` — social feed.
-- `lost_pets` — emergency reports (`ai_*` columns are filled by P4's Fal step).
+- `lost_pets` — emergency reports.
 - `sightings` — sightings for a lost pet (`lat`/`lng` feed the map).
 - `breeds` — reference catalog.
-- `pet_travel_status` (view) — computes `is_travel_ready` (has microchip + passport + all travel-required vaccines up to date).
 
 ## Naming convention
 
 - Table/column names are **English**.
 - Enum **values** stay in **Spanish** (`'Perro'`, `'Gato'`, `status 'activo'`) because the
   frontend already uses those exact strings. The DB is `snake_case`; the frontend is
-  `camelCase`, so n8n (P3) maps between them, e.g.:
+  `camelCase`, so n8n (P3) maps between them, e.g. `pet_name` → `petName`,
+  `last_seen` → `lastSeen`, `owner_phone` → `ownerPhone`, `photo_url` → `photoUrl`.
 
-  | DB (`lost_pets`) | Frontend (`api.js`) |
-  |---|---|
-  | `pet_name` | `petName` |
-  | `last_seen` | `lastSeen` |
-  | `owner_phone` | `ownerPhone` |
-  | `photo_url` | `photoUrl` |
+## Notes (not blocking)
 
-## Notes for later (not blocking)
-
-- Enable **Row Level Security (RLS)** policies before going public. For the hackathon the
-  anon key + n8n service role is enough.
-- The Firecrawl-scraped El Salvador dataset (P5, next task) will be delivered as an extra
-  `seed_real.sql` / JSON that follows this same schema.
+- Enable Row Level Security (RLS) before going public. For the hackathon the anon key +
+  n8n is enough.
+- Next P5 task: real El Salvador dataset via Firecrawl, delivered as an extra seed file
+  following this same schema.
