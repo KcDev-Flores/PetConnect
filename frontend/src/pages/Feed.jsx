@@ -4,7 +4,7 @@ import SocialFeed from "../components/feed/SocialFeed";
 import PostComposer from "../components/feed/PostComposer";
 import Stories from "../components/ui/Stories";
 import Icon from "../components/icons/Icons";
-import { currentUser, pets as passportPets } from "../data/mockData";
+import { pets as passportPets } from "../data/mockData";
 
 const FOLLOWED_PETS_KEY = "petconnect:followed-pets";
 
@@ -72,7 +72,7 @@ export default function Feed() {
   } = useFeed();
   const suggestedPets = passportPets
     .filter((pet) =>
-      !currentUser.pets.includes(pet.id) &&
+      !ownedPets.some((ownedPet) => String(ownedPet.id) === String(pet.id)) &&
       pet.id !== activePet?.id &&
       !followedPetIds.some((followedId) => String(followedId) === String(pet.id))
     )

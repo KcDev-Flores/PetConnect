@@ -1,18 +1,21 @@
 import { useState, useEffect } from "react";
 import { getUserPets, savePet as apiSavePet } from "../services/api";
-import { breeds, currentUser } from "../data/mockData"; // fallback data
+import { breeds } from "../data/mockData"; // fallback data solo para razas
+import { useAuthStore } from "../store/authStore";
 
 export function usePets() {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const { user } = useAuthStore();
+
   useEffect(() => {
-    // Assuming currentUser is authenticated, we fetch their pets
-    getUserPets(currentUser.id)
+    if (!user) return;
+    getUserPets(user.id)
       .then((data) => { setPets(data); setLoading(false); })
       .catch((err) => { setError(err.message); setLoading(false); });
-  }, []);
+  }, [user]);
 
   const savePet = async (petData) => {
     try {

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import Icon, { Logo } from "../icons/Icons";
 import { useAuth } from "../../hooks/useAuth";
+import { useAuthStore } from "../../store/authStore";
 
 const links = [
   { to: "/", label: "Feed", icon: "home", end: true },
@@ -15,6 +16,7 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { session, logout } = useAuthStore();
 
   const handleCreatePost = () => {
     setIsMobileMenuOpen(false);
@@ -28,10 +30,9 @@ export default function Navbar() {
     }, 80);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsMobileMenuOpen(false);
-    localStorage.removeItem("petconnect:auth-token");
-    localStorage.removeItem("petconnect:user");
+    await logout();
     navigate("/login");
   };
 
@@ -63,19 +64,30 @@ export default function Navbar() {
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
-          <Link
-            to="/login?mode=register"
-            className="hidden text-xs font-semibold text-slate-500 transition-colors hover:text-emerald-700 sm:block"
-          >
-            No tienes cuenta? <span className="font-black text-emerald-600">Registrate aqui</span>
-          </Link>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-colors"
-          >
-            Cerrar sesion
-          </button>
+          {session ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              Cerrar sesion
+            </button>
+          ) : (
+            <>
+              <Link
+                to="/login?mode=register"
+                className="hidden text-xs font-semibold text-slate-500 transition-colors hover:text-emerald-700 sm:block"
+              >
+                No tienes cuenta? <span className="font-black text-emerald-600">Registrate aqui</span>
+              </Link>
+              <Link
+                to="/login"
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-xl transition-colors"
+              >
+                Iniciar sesión
+              </Link>
+            </>
+          )}
         </div>
 
         <button
@@ -144,21 +156,34 @@ export default function Navbar() {
             </div>
 
             <div className="border-t border-slate-100 bg-slate-50 p-4">
-              <Link
-                to="/login?mode=register"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block text-center text-xs font-semibold text-slate-500 transition-colors hover:text-emerald-700"
-              >
-                No tienes cuenta? <span className="font-black text-emerald-600">Registrate aqui</span>
-              </Link>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-red-500 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-red-600"
-              >
-                <Icon name="user" size={18} />
-                Cerrar sesion
-              </button>
+              {session ? (
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-red-500 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-red-600"
+                >
+                  <Icon name="user" size={18} />
+                  Cerrar sesion
+                </button>
+              ) : (
+                <>
+                  <Link
+                    to="/login?mode=register"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block text-center text-xs font-semibold text-slate-500 transition-colors hover:text-emerald-700"
+                  >
+                    No tienes cuenta? <span className="font-black text-emerald-600">Registrate aqui</span>
+                  </Link>
+                  <Link
+                    to="/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-emerald-600"
+                  >
+                    <Icon name="user" size={18} />
+                    Iniciar sesión
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

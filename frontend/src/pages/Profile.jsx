@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { currentUser, pets } from "../data/mockData";
+import { useAuthStore } from "../store/authStore";
+import { usePets } from "../hooks/usePets";
 import Avatar from "../components/ui/Avatar";
 import PetCard from "../components/ui/PetCard";
 import Icon from "../components/icons/Icons";
@@ -78,11 +79,14 @@ async function optimizePetPhoto(file) {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const { pets: apiPets } = usePets();
+
   const [profile, setProfile] = useState({
-    name: currentUser.name,
-    email: currentUser.email,
-    location: currentUser.location,
-    phone: currentUser.phone,
+    name: user?.user_metadata?.name || "Usuario Anónimo",
+    email: user?.email || "",
+    location: user?.user_metadata?.location || "Sin especificar",
+    phone: user?.user_metadata?.phone || "",
     photoUrl: "",
   });
   const [draft, setDraft] = useState(profile);
@@ -93,7 +97,7 @@ export default function Profile() {
   const [petDraft, setPetDraft] = useState(emptyPetForm);
 
   const userPets = [
-    ...pets.filter((p) => currentUser.pets.includes(p.id) && !deletedPetIds.some((id) => String(id) === String(p.id))),
+    ...apiPets.filter((p) => !deletedPetIds.some((id) => String(id) === String(p.id))),
     ...ownedExtraPets,
   ];
 
@@ -170,7 +174,7 @@ export default function Profile() {
       setOwnedExtraPets(savedPets);
     }
 
-    if (currentUser.pets.some((petId) => String(petId) === String(pet.id))) {
+    if (apiPets.some((petId) => String(petId) === String(pet.id))) {
       const nextDeletedPetIds = deletedPetIds.some((petId) => String(petId) === String(pet.id))
         ? deletedPetIds
         : [...deletedPetIds, pet.id];
@@ -198,7 +202,7 @@ export default function Profile() {
                   className="h-20 w-20 rounded-2xl object-cover shadow-md"
                 />
               ) : (
-                <Avatar icon={currentUser.icon} size="lg" color="#10B981" />
+                <Avatar icon="user" size="lg" color="#10B981" />
               )}
               {isEditing && (
                 <label className="absolute -bottom-2 -right-2 grid h-9 w-9 cursor-pointer place-items-center rounded-xl bg-emerald-500 text-white shadow-lg transition-colors hover:bg-emerald-600">
@@ -305,11 +309,11 @@ export default function Profile() {
               <p className="text-xs text-slate-400">Mascotas</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-800">128</p>
+              <p className="text-2xl font-bold text-slate-800">0</p>
               <p className="text-xs text-slate-400">Seguidores</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-800">45</p>
+              <p className="text-2xl font-bold text-slate-800">0</p>
               <p className="text-xs text-slate-400">Siguiendo</p>
             </div>
           </div>
@@ -701,7 +705,7 @@ export default function Profile() {
       </section>
 
       <p className="text-xs text-slate-400 text-center">
-        Miembro desde {currentUser.joined}
+        Miembro desde {user ? new Date(user.created_at).getFullYear() : "Recientemente"}
       </p>
     </div>
   );

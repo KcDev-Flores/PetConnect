@@ -1,7 +1,15 @@
-import { currentUser, pets } from "../data/mockData";
+import { useAuthStore } from "../store/authStore";
+import { usePets } from "./usePets";
 
 export function useProfile() {
-  const userPets = pets.filter((p) => currentUser.pets.includes(p.id));
+  const { user } = useAuthStore();
+  const { pets: userPets } = usePets();
+
+  const currentUser = {
+    name: user?.user_metadata?.name || "Usuario Anónimo",
+    email: user?.email || "",
+    joined: user ? new Date(user.created_at).getFullYear() : "Recientemente",
+  };
 
   return { currentUser, userPets };
 }

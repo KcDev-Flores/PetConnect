@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { currentUser, pets } from "../data/mockData";
+import { useAuthStore } from "../store/authStore";
+import { usePets } from "../hooks/usePets";
 import { loadDeletedOwnedPetIds, loadOwnedPets } from "../data/localPets";
 import { useLostPets } from "../hooks/useLostPets";
 import Avatar from "../components/ui/Avatar";
@@ -347,17 +348,18 @@ function SelectedAlertDetail({ alert, canResolve, onMarkFound, onBack }) {
 }
 
 export default function Emergency() {
+  const { user } = useAuthStore();
+  const { pets: apiPets } = usePets();
   const { reports, loading, submitReport } = useLostPets();
   const [localOwnedPets] = useState(() => loadOwnedPets());
   const [deletedPetIds] = useState(() => loadDeletedOwnedPetIds());
+  
   const ownedPets = useMemo(
     () => [
-      ...pets.filter((pet) =>
-        currentUser.pets.includes(pet.id) && !deletedPetIds.some((id) => String(id) === String(pet.id))
-      ),
+      ...apiPets.filter((pet) => !deletedPetIds.some((id) => String(id) === String(pet.id))),
       ...localOwnedPets,
     ],
-    [deletedPetIds, localOwnedPets]
+    [apiPets, deletedPetIds, localOwnedPets]
   );
   const [localAlerts, setLocalAlerts] = useState(() => readLocalAlerts());
   const [selectedAlertId, setSelectedAlertId] = useState(null);
@@ -366,14 +368,14 @@ export default function Emergency() {
     petId: ownedPets[0]?.id ?? "",
     lostLocation: "",
     lostDate: "",
-    contactPhone: currentUser.phone,
+    contactPhone: user?.user_metadata?.phone || "",
     reward: "",
     notes: "",
   });
 
   const sourcePets = useMemo(
-    () => [...pets.filter((pet) => !deletedPetIds.some((id) => String(id) === String(pet.id))), ...localOwnedPets],
-    [deletedPetIds, localOwnedPets]
+    () => [...apiPets.filter((pet) => !deletedPetIds.some((id) => String(id) === String(pet.id))), ...localOwnedPets],
+    [apiPets, deletedPetIds, localOwnedPets]
   );
   const normalizedReports = useMemo(() => reports.map(normalizeReport), [reports]);
   const alertPosts = useMemo(
@@ -407,7 +409,7 @@ export default function Emergency() {
       petId: ownedPets[0]?.id ?? "",
       lostLocation: "",
       lostDate: "",
-      contactPhone: currentUser.phone,
+      contactPhone: user?.user_metadata?.phone || "",
       reward: "",
       notes: "",
     });

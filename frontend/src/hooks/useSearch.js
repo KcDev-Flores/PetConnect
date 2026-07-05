@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { breeds, currentUser, pets } from "../data/mockData";
+import { breeds, pets } from "../data/mockData";
 import { loadDeletedOwnedPetIds, loadOwnedPets } from "../data/localPets";
 
 export function useSearch() {
@@ -12,7 +12,7 @@ export function useSearch() {
   const allPets = useMemo(
     () => [
       ...pets.filter((pet) =>
-        !currentUser.pets.includes(pet.id) || !deletedPetIds.some((id) => String(id) === String(pet.id))
+        !deletedPetIds.some((id) => String(id) === String(pet.id))
       ),
       ...localPets,
     ],
