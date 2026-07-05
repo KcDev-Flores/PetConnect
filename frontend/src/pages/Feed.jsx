@@ -59,12 +59,27 @@ export default function Feed() {
     image: "",
     location: "",
   });
-  const { feedPosts, loading, activePet, publishPost } = useFeed();
+  const {
+    feedPosts,
+    loading,
+    ownedPets,
+    activePet,
+    selectedPetId,
+    setSelectedPetId,
+    publishPost,
+    togglePostLike,
+    addPostComment,
+  } = useFeed();
   const suggestedPets = passportPets
-    .filter((pet) => !currentUser.pets.includes(pet.id) && pet.id !== activePet?.id)
+    .filter((pet) =>
+      !currentUser.pets.includes(pet.id) &&
+      pet.id !== activePet?.id &&
+      !followedPetIds.some((followedId) => String(followedId) === String(pet.id))
+    )
+    .slice(0, 6)
     .map((pet) => ({
       ...pet,
-      followers: pet.followers + (followedPetIds.includes(pet.id) ? 1 : 0),
+      followers: pet.followers,
     }));
 
   useEffect(() => {
@@ -77,6 +92,7 @@ export default function Feed() {
   const handlePublish = async (e) => {
     e.preventDefault();
     await publishPost({
+      petId: selectedPetId,
       content: postDraft.content,
       image: postDraft.image,
       location: { name: postDraft.location },
@@ -129,7 +145,7 @@ export default function Feed() {
         </header>
 
         <div className="min-w-0 overflow-hidden rounded-3xl border border-slate-100 bg-white px-4 pt-4 shadow-sm">
-          <Stories />
+          <Stories ownedPets={ownedPets} activePet={activePet} />
         </div>
 
         <SocialFeed
@@ -137,6 +153,9 @@ export default function Feed() {
           subtitle=""
           posts={feedPosts}
           activePet={activePet}
+          ownedPets={ownedPets}
+          selectedPetId={selectedPetId}
+          onPetChange={(e) => setSelectedPetId(e.target.value)}
           composerValue={postDraft.content}
           composerImage={postDraft.image}
           composerLocation={postDraft.location}
@@ -149,6 +168,8 @@ export default function Feed() {
           friendSuggestions={suggestedPets}
           followedPetIds={followedPetIds}
           onToggleFollow={handleToggleFollow}
+          onLike={togglePostLike}
+          onAddComment={addPostComment}
         />
       </section>
 
@@ -231,6 +252,9 @@ export default function Feed() {
             <div className="max-h-[78vh] overflow-y-auto p-4">
               <PostComposer
                 activePet={activePet}
+                ownedPets={ownedPets}
+                selectedPetId={selectedPetId}
+                onPetChange={(e) => setSelectedPetId(e.target.value)}
                 value={postDraft.content}
                 imagePreview={postDraft.image}
                 locationValue={postDraft.location}

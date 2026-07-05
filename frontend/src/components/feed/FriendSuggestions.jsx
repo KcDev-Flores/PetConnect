@@ -112,7 +112,10 @@ function PetDetailModal({ pet, isFollowing, onClose, onToggleFollow }) {
 
           <button
             type="button"
-            onClick={() => onToggleFollow?.(pet.id)}
+            onClick={() => {
+              onToggleFollow?.(pet.id);
+              if (!isFollowing) onClose();
+            }}
             className={`mt-5 w-full rounded-2xl px-5 py-3 text-sm font-black transition-colors ${
               isFollowing
                 ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"

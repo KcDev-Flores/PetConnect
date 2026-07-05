@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import Avatar from "../ui/Avatar";
 import Icon from "../icons/Icons";
 
@@ -60,10 +61,21 @@ function PostLocationMap({ location }) {
   );
 }
 
-export default function PostCard({ post, onLike, onComment, onShare }) {
+export default function PostCard({ post, onLike, onAddComment }) {
+  const [commentText, setCommentText] = useState("");
+  const commentInputRef = useRef(null);
   const mediaTone = post.icon === "cat"
     ? "from-sky-100 via-white to-indigo-100 text-sky-600"
     : "from-amber-100 via-white to-emerald-100 text-amber-600";
+  const visibleComments = post.commentsList ?? [];
+
+  const handleCommentSubmit = (event) => {
+    event.preventDefault();
+    if (!commentText.trim()) return;
+
+    onAddComment?.(post, commentText);
+    setCommentText("");
+  };
 
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
@@ -71,7 +83,11 @@ export default function PostCard({ post, onLike, onComment, onShare }) {
         <div className="flex items-center gap-3">
           <div className="rounded-full bg-gradient-to-tr from-amber-400 via-rose-400 to-emerald-400 p-[2px]">
             <div className="rounded-full bg-white p-[2px]">
-              <Avatar icon={post.icon} size="sm" />
+              {post.petPhotoUrl ? (
+                <img src={post.petPhotoUrl} alt={post.petName} className="h-10 w-10 rounded-2xl object-cover" />
+              ) : (
+                <Avatar icon={post.icon} size="sm" color={post.color} />
+              )}
             </div>
           </div>
           <div className="min-w-0">
@@ -112,33 +128,18 @@ export default function PostCard({ post, onLike, onComment, onShare }) {
           <button
             type="button"
             onClick={() => onLike?.(post)}
-            className="text-slate-800 transition-colors hover:text-rose-500"
+            className={`transition-colors hover:text-rose-500 ${post.liked ? "text-rose-500" : "text-slate-800"}`}
             aria-label="Me gusta"
           >
-            <Icon name="heart" size={24} />
+            <Icon name="heart" size={25} />
           </button>
           <button
             type="button"
-            onClick={() => onComment?.(post)}
+            onClick={() => commentInputRef.current?.focus()}
             className="text-slate-800 transition-colors hover:text-sky-500"
             aria-label="Comentar"
           >
-            <Icon name="comment" size={24} />
-          </button>
-          <button
-            type="button"
-            onClick={() => onShare?.(post)}
-            className="text-slate-800 transition-colors hover:text-emerald-500"
-            aria-label="Compartir"
-          >
-            <Icon name="share" size={24} />
-          </button>
-          <button
-            type="button"
-            className="ml-auto text-slate-800 transition-colors hover:text-emerald-600"
-            aria-label="Guardar"
-          >
-            <Icon name="bookmark" size={24} />
+            <Icon name="comment" size={25} />
           </button>
         </div>
 
@@ -150,19 +151,37 @@ export default function PostCard({ post, onLike, onComment, onShare }) {
           </p>
         )}
 
-        <button type="button" className="mt-2 text-sm font-medium text-slate-400 transition-colors hover:text-slate-600">
-          Ver los {post.comments} comentarios
-        </button>
+        <div className="mt-3 space-y-2">
+          <p className="text-sm font-medium text-slate-400">
+            {post.comments} comentarios
+          </p>
+          {visibleComments.slice(-3).map((comment) => (
+            <div key={comment.id} className="rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              <span className="font-black text-slate-900">{comment.author}</span>{" "}
+              {comment.text}
+            </div>
+          ))}
+        </div>
 
         {post.location && <PostLocationMap location={post.location} />}
 
-        <div className="mt-3 flex items-center gap-3 border-t border-slate-100 pt-3">
+        <form onSubmit={handleCommentSubmit} className="mt-3 flex items-center gap-3 border-t border-slate-100 pt-3">
           <Avatar icon="user" size="sm" />
-          <button type="button" className="flex-1 text-left text-sm text-slate-400">
-            Agrega un comentario...
+          <input
+            ref={commentInputRef}
+            value={commentText}
+            onChange={(event) => setCommentText(event.target.value)}
+            className="min-w-0 flex-1 rounded-full bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none transition-colors placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+            placeholder="Agrega un comentario..."
+          />
+          <button
+            type="submit"
+            disabled={!commentText.trim()}
+            className="text-xs font-black text-emerald-600 transition-colors hover:text-emerald-700 disabled:cursor-not-allowed disabled:text-slate-300"
+          >
+            Publicar
           </button>
-          <span className="text-xs font-bold text-emerald-600">Publicar</span>
-        </div>
+        </form>
       </div>
     </article>
   );

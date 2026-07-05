@@ -5,7 +5,7 @@ import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
 import Icon from "../components/icons/Icons";
 import { FormField, inputClass, textareaClass } from "../components/ui/FormPrimitives";
-import { loadOwnedPets, saveOwnedPets } from "../data/localPets";
+import { loadDeletedOwnedPetIds, loadOwnedPets, saveOwnedPets } from "../data/localPets";
 
 const LOCAL_ALERTS_KEY = "petconnect:lost-alert-posts";
 
@@ -473,8 +473,11 @@ function AnimalPassportCard({ pet, isSelected, isLost, onClick }) {
 export default function Passport() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [localOwnedPets, setLocalOwnedPets] = useState(() => loadOwnedPets());
-  const allPets = [...pets, ...localOwnedPets];
-  const loggedPetIds = [...currentUser.pets, ...localOwnedPets.map((pet) => pet.id)];
+  const [deletedPetIds] = useState(() => loadDeletedOwnedPetIds());
+  const visibleBasePets = pets.filter((pet) => !deletedPetIds.some((id) => String(id) === String(pet.id)));
+  const loggedBasePetIds = currentUser.pets.filter((id) => !deletedPetIds.some((deletedId) => String(deletedId) === String(id)));
+  const allPets = [...visibleBasePets, ...localOwnedPets];
+  const loggedPetIds = [...loggedBasePetIds, ...localOwnedPets.map((pet) => pet.id)];
   const requestedPet = allPets.find((pet) =>
     String(pet.id) === searchParams.get("pet") && loggedPetIds.includes(pet.id)
   );

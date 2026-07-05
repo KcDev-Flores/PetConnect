@@ -1,4 +1,5 @@
 const OWNED_PETS_KEY = "petconnect:owned-pets";
+const DELETED_OWNED_PET_IDS_KEY = "petconnect:deleted-owned-pet-ids";
 
 export function loadOwnedPets() {
   try {
@@ -10,7 +11,32 @@ export function loadOwnedPets() {
 }
 
 export function saveOwnedPets(pets) {
-  window.localStorage.setItem(OWNED_PETS_KEY, JSON.stringify(pets));
+  try {
+    window.localStorage.setItem(OWNED_PETS_KEY, JSON.stringify(pets));
+    return pets;
+  } catch {
+    const lightweightPets = pets.map((pet) => ({ ...pet, photoUrl: "" }));
+    try {
+      window.localStorage.setItem(OWNED_PETS_KEY, JSON.stringify(lightweightPets));
+    } catch {
+      window.localStorage.removeItem(OWNED_PETS_KEY);
+      window.localStorage.setItem(OWNED_PETS_KEY, JSON.stringify(lightweightPets));
+    }
+    return lightweightPets;
+  }
+}
+
+export function loadDeletedOwnedPetIds() {
+  try {
+    const raw = window.localStorage.getItem(DELETED_OWNED_PET_IDS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveDeletedOwnedPetIds(ids) {
+  window.localStorage.setItem(DELETED_OWNED_PET_IDS_KEY, JSON.stringify(ids));
 }
 
 function clean(value) {

@@ -176,6 +176,26 @@ const icons = {
       <circle cx="19" cy="12" r="1" fill="currentColor" stroke="none" />
     </Svg>
   ),
+  menu: (p) => (
+    <Svg {...p}>
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </Svg>
+  ),
+  close: (p) => (
+    <Svg {...p}>
+      <path d="M6 6l12 12M18 6 6 18" />
+    </Svg>
+  ),
+  "arrow-left": (p) => (
+    <Svg {...p}>
+      <path d="M15 18 9 12l6-6" />
+    </Svg>
+  ),
+  "arrow-right": (p) => (
+    <Svg {...p}>
+      <path d="m9 18 6-6-6-6" />
+    </Svg>
+  ),
   calendar: (p) => (
     <Svg {...p}>
       <rect x="4" y="5" width="16" height="15" rx="2" />

@@ -5,7 +5,9 @@ import Avatar from "../components/ui/Avatar";
 import PetCard from "../components/ui/PetCard";
 import Icon from "../components/icons/Icons";
 import { FormField, inputClass, textareaClass } from "../components/ui/FormPrimitives";
-import { createOwnedPet, loadOwnedPets, saveOwnedPets } from "../data/localPets";
+import { createOwnedPet, loadDeletedOwnedPetIds, loadOwnedPets, saveDeletedOwnedPetIds, saveOwnedPets } from "../data/localPets";
+
+const LOCAL_ALERTS_KEY = "petconnect:lost-alert-posts";
 
 const activityItems = [
   { icon: "edit", color: "bg-emerald-100 text-emerald-600", text: "Publicaste en el feed", time: "Hace 2 horas" },
@@ -43,6 +45,37 @@ const emptyPetForm = {
   travelNotes: "",
 };
 
+function readImageAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function optimizePetPhoto(file) {
+  const originalImage = await readImageAsDataUrl(file);
+  const image = new Image();
+
+  return new Promise((resolve) => {
+    image.onload = () => {
+      const maxSize = 900;
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+
+      const context = canvas.getContext("2d");
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.78));
+    };
+
+    image.onerror = () => resolve(originalImage);
+    image.src = originalImage;
+  });
+}
+
 export default function Profile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState({
@@ -55,11 +88,12 @@ export default function Profile() {
   const [draft, setDraft] = useState(profile);
   const [isEditing, setIsEditing] = useState(false);
   const [ownedExtraPets, setOwnedExtraPets] = useState(() => loadOwnedPets());
+  const [deletedPetIds, setDeletedPetIds] = useState(() => loadDeletedOwnedPetIds());
   const [showPetForm, setShowPetForm] = useState(false);
   const [petDraft, setPetDraft] = useState(emptyPetForm);
 
   const userPets = [
-    ...pets.filter((p) => currentUser.pets.includes(p.id)),
+    ...pets.filter((p) => currentUser.pets.includes(p.id) && !deletedPetIds.some((id) => String(id) === String(p.id))),
     ...ownedExtraPets,
   ];
 
@@ -95,15 +129,12 @@ export default function Profile() {
     setPetDraft((current) => ({ ...current, [field]: e.target.value }));
   };
 
-  const handlePetPhotoSelect = (e) => {
+  const handlePetPhotoSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPetDraft((current) => ({ ...current, photoUrl: reader.result }));
-    };
-    reader.readAsDataURL(file);
+    const photoUrl = await optimizePetPhoto(file);
+    setPetDraft((current) => ({ ...current, photoUrl }));
   };
 
   const handleAddPet = (e) => {
@@ -111,10 +142,44 @@ export default function Profile() {
 
     const nextPet = createOwnedPet(petDraft, profile.name);
     const nextPets = [...ownedExtraPets, nextPet];
-    setOwnedExtraPets(nextPets);
-    saveOwnedPets(nextPets);
+    const savedPets = saveOwnedPets(nextPets);
+
+    setOwnedExtraPets(savedPets);
     setPetDraft(emptyPetForm);
     setShowPetForm(false);
+  };
+
+  const removeLostAlertsForPet = (petId) => {
+    try {
+      const alerts = JSON.parse(localStorage.getItem(LOCAL_ALERTS_KEY)) ?? [];
+      const nextAlerts = alerts.filter((alert) => String(alert.petId) !== String(petId));
+      localStorage.setItem(LOCAL_ALERTS_KEY, JSON.stringify(nextAlerts));
+      window.dispatchEvent(new Event("petconnect:lost-alerts-updated"));
+    } catch {
+      localStorage.setItem(LOCAL_ALERTS_KEY, JSON.stringify([]));
+    }
+  };
+
+  const handleDeletePet = (pet) => {
+    const confirmed = window.confirm(`Eliminar a ${pet.name} de tu perfil? Esta accion quitara su pasaporte y alertas activas.`);
+    if (!confirmed) return;
+
+    const nextOwnedExtraPets = ownedExtraPets.filter((ownedPet) => String(ownedPet.id) !== String(pet.id));
+    if (nextOwnedExtraPets.length !== ownedExtraPets.length) {
+      const savedPets = saveOwnedPets(nextOwnedExtraPets);
+      setOwnedExtraPets(savedPets);
+    }
+
+    if (currentUser.pets.some((petId) => String(petId) === String(pet.id))) {
+      const nextDeletedPetIds = deletedPetIds.some((petId) => String(petId) === String(pet.id))
+        ? deletedPetIds
+        : [...deletedPetIds, pet.id];
+
+      setDeletedPetIds(nextDeletedPetIds);
+      saveDeletedOwnedPetIds(nextDeletedPetIds);
+    }
+
+    removeLostAlertsForPet(pet.id);
   };
 
   const visibleProfile = isEditing ? draft : profile;
@@ -602,11 +667,21 @@ export default function Profile() {
 
         <div className="grid md:grid-cols-2 gap-4">
           {userPets.map((pet) => (
-            <PetCard
-              key={pet.id}
-              pet={pet}
-              onClick={() => navigate(`/passport?pet=${pet.id}`)}
-            />
+            <div key={pet.id} className="group relative">
+              <PetCard
+                pet={pet}
+                onClick={() => navigate(`/passport?pet=${pet.id}`)}
+              />
+              <button
+                type="button"
+                onClick={() => handleDeletePet(pet)}
+                className="absolute right-4 top-4 flex items-center gap-1.5 rounded-xl border border-red-100 bg-white/95 px-3 py-2 text-xs font-black text-red-600 shadow-sm transition-all hover:bg-red-500 hover:text-white sm:opacity-0 sm:group-hover:opacity-100"
+                aria-label={`Eliminar a ${pet.name}`}
+              >
+                <Icon name="close" size={14} />
+                Eliminar
+              </button>
+            </div>
           ))}
         </div>
       </section>
