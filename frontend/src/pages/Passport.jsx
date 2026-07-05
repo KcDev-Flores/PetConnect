@@ -7,12 +7,80 @@ import Icon from "../components/icons/Icons";
 import { FormField, inputClass, textareaClass } from "../components/ui/FormPrimitives";
 import { loadOwnedPets, saveOwnedPets } from "../data/localPets";
 
+const LOCAL_ALERTS_KEY = "petconnect:lost-alert-posts";
+
 function createPassportInfo(pet) {
   return {
     code: `PC-${String(pet.id).padStart(6, "0")}`,
     microchip: `SV-2026-${String(4300 + pet.id)}`,
     issuedAt: "Julio 2026",
     status: "Verificado",
+  };
+}
+
+function readLocalEmergencyAlerts() {
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_ALERTS_KEY)) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalEmergencyAlerts(alerts) {
+  try {
+    localStorage.setItem(LOCAL_ALERTS_KEY, JSON.stringify(alerts));
+  } catch {
+    const lightweightAlerts = alerts.map((alert, index) => (index === 0 ? alert : { ...alert, photoUrl: "" }));
+    localStorage.setItem(LOCAL_ALERTS_KEY, JSON.stringify(lightweightAlerts));
+  }
+}
+
+function optimizeAlertPhoto(photoUrl) {
+  if (!photoUrl) return Promise.resolve("");
+
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      const maxSize = 720;
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+      const context = canvas.getContext("2d");
+
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.76));
+    };
+    image.onerror = () => resolve(photoUrl);
+    image.src = photoUrl;
+  });
+}
+
+function createLostAlertFromPet(pet, values, photoUrl) {
+  const passport = pet.passport ?? createPassportInfo(pet);
+  const id = Date.now();
+
+  return {
+    id,
+    petId: pet.id,
+    petName: pet.name,
+    species: pet.species,
+    breed: pet.breed,
+    age: pet.age,
+    bio: pet.bio,
+    owner: pet.owner,
+    icon: pet.icon,
+    color: pet.color,
+    photoUrl: photoUrl ?? pet.photoUrl ?? "",
+    status: "Perdido",
+    passport,
+    lostLocation: values.lostLocation.trim(),
+    lostDate: values.lostDate.trim() || "Hoy",
+    contactPhone: values.contactPhone.trim(),
+    reward: values.reward.trim(),
+    notes: values.notes.trim() || pet.bio,
+    createdAtLabel: "Publicado desde pasaporte",
+    sightings: [],
   };
 }
 
@@ -416,6 +484,15 @@ export default function Passport() {
   );
   const [selectedPetId, setSelectedPetId] = useState(initialPetId);
   const [isEditing, setIsEditing] = useState(false);
+  const [showLostForm, setShowLostForm] = useState(false);
+  const [lostDraft, setLostDraft] = useState({
+    lostLocation: "",
+    lostDate: "",
+    contactPhone: currentUser.phone,
+    reward: "",
+    notes: "",
+  });
+  const [lostAlertCreated, setLostAlertCreated] = useState(false);
   const ownedPetProfiles = petProfiles.filter((pet) => loggedPetIds.includes(pet.id));
   const selectedPet = ownedPetProfiles.find((pet) => pet.id === selectedPetId) ?? null;
   const [form, setForm] = useState(selectedPet ? { ...selectedPet } : null);
@@ -451,6 +528,8 @@ export default function Passport() {
     setSelectedPetId(pet.id);
     setForm({ ...pet });
     setIsEditing(false);
+    setShowLostForm(false);
+    setLostAlertCreated(false);
     setSearchParams({ pet: String(pet.id) });
   };
 
@@ -458,6 +537,8 @@ export default function Passport() {
     setSelectedPetId(null);
     setForm(null);
     setIsEditing(false);
+    setShowLostForm(false);
+    setLostAlertCreated(false);
     setSearchParams({});
   };
 
@@ -474,6 +555,34 @@ export default function Passport() {
         photoUrl,
       };
     });
+  };
+
+  const setLostField = (field) => (e) => {
+    setLostDraft((current) => ({ ...current, [field]: e.target.value }));
+  };
+
+  const handleDeclareLost = async (e) => {
+    e.preventDefault();
+    if (!visiblePet || !lostDraft.lostLocation.trim()) return;
+
+    const alertPhoto = await optimizeAlertPhoto(visiblePet.photoUrl);
+    const alert = createLostAlertFromPet(visiblePet, lostDraft, alertPhoto);
+    const nextAlerts = [alert, ...readLocalEmergencyAlerts()];
+
+    try {
+      saveLocalEmergencyAlerts(nextAlerts);
+    } catch {
+      saveLocalEmergencyAlerts([{ ...alert, photoUrl: "" }]);
+    }
+    setLostDraft({
+      lostLocation: "",
+      lostDate: "",
+      contactPhone: currentUser.phone,
+      reward: "",
+      notes: "",
+    });
+    setLostAlertCreated(true);
+    setShowLostForm(false);
   };
 
   if (ownedPetProfiles.length === 0) {
@@ -745,6 +854,104 @@ export default function Passport() {
                 Ver perfil del dueño
               </p>
             </Link>
+
+            <section className="rounded-2xl border border-red-100 bg-red-50 p-5 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-red-500">
+                  <Icon name="alert" size={22} />
+                </div>
+                <div>
+                  <h3 className="font-black text-red-900">Declarar mascota perdida</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-red-700">
+                    Crea una publicacion en Emergencia usando este pasaporte.
+                  </p>
+                </div>
+              </div>
+
+              {lostAlertCreated && (
+                <div className="mt-4 rounded-2xl border border-emerald-100 bg-white p-3 text-sm font-semibold text-emerald-700">
+                  Alerta publicada en Emergencia.
+                  <Link to="/emergency" className="ml-2 font-black text-emerald-800 hover:text-emerald-900">
+                    Ver publicacion
+                  </Link>
+                </div>
+              )}
+
+              {!showLostForm ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLostForm(true);
+                    setLostAlertCreated(false);
+                  }}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-red-500 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-red-600"
+                >
+                  <Icon name="alert" size={17} />
+                  Marcar como perdido
+                </button>
+              ) : (
+                <form onSubmit={handleDeclareLost} className="mt-4 space-y-3">
+                  <FormField label="Ubicacion donde se perdio" required>
+                    <input
+                      value={lostDraft.lostLocation}
+                      onChange={setLostField("lostLocation")}
+                      className={inputClass}
+                      placeholder="Ej: Parque Bicentenario"
+                      required
+                    />
+                  </FormField>
+                  <FormField label="Fecha">
+                    <input
+                      type="date"
+                      value={lostDraft.lostDate}
+                      onChange={setLostField("lostDate")}
+                      className={inputClass}
+                    />
+                  </FormField>
+                  <FormField label="Contacto">
+                    <input
+                      value={lostDraft.contactPhone}
+                      onChange={setLostField("contactPhone")}
+                      className={inputClass}
+                      placeholder="+503 0000-0000"
+                    />
+                  </FormField>
+                  <FormField label="Recompensa">
+                    <input
+                      value={lostDraft.reward}
+                      onChange={setLostField("reward")}
+                      className={inputClass}
+                      placeholder="Opcional"
+                    />
+                  </FormField>
+                  <FormField label="Descripcion">
+                    <textarea
+                      value={lostDraft.notes}
+                      onChange={setLostField("notes")}
+                      className={textareaClass}
+                      rows={3}
+                      placeholder="Senas, collar, comportamiento o indicaciones importantes."
+                    />
+                  </FormField>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowLostForm(false)}
+                      className="flex-1 rounded-2xl border border-red-200 bg-white px-4 py-2.5 text-sm font-black text-red-600 transition-colors hover:bg-red-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 rounded-2xl bg-red-500 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-red-600"
+                    >
+                      Publicar
+                    </button>
+                  </div>
+                </form>
+              )}
+            </section>
 
             <DigitalPassportCard
               passport={passportInfo}
