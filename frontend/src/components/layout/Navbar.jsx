@@ -58,14 +58,7 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleCreatePost}
-            className="hidden items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 sm:flex"
-          >
-            <Icon name="plus" size={17} />
-            Crear
-          </button>
+
           <Link
             to="/login?mode=register"
             className="hidden text-xs font-semibold text-slate-500 transition-colors hover:text-emerald-700 sm:block"
