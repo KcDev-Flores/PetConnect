@@ -1,12 +1,8 @@
 import { useState } from "react";
-<<<<<<< HEAD
 import { Link, useSearchParams } from "react-router-dom";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { pets, breeds, currentUser } from "../data/mockData";
-=======
-import { usePets } from "../hooks/usePets";
->>>>>>> origin/Charlie
 import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
 import Icon from "../components/icons/Icons";
@@ -295,7 +291,6 @@ function AnimalPassportCard({ pet, isSelected, onClick }) {
 }
 
 export default function Passport() {
-<<<<<<< HEAD
   const [searchParams, setSearchParams] = useSearchParams();
   const [localOwnedPets] = useState(() => loadOwnedPets());
   const allPets = [...pets, ...localOwnedPets];
@@ -382,36 +377,6 @@ export default function Passport() {
   const visiblePet = isEditing && form ? form : selectedPet;
   const breedInfo = visiblePet ? breeds.find((b) => b.name === visiblePet.breed) : null;
   const passportInfo = visiblePet ? visiblePet.passport ?? createPassportInfo(visiblePet) : null;
-=======
-  const { pets, breeds, savePet, loading } = usePets();
-  const [selectedPet, setSelectedPet] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState(null);
-
-  // Initialize selected pet once pets are loaded
-  if (!selectedPet && pets.length > 0) {
-    setSelectedPet(pets[0]);
-    setForm({ ...pets[0] });
-  }
-
-  const handleSave = async () => {
-    await savePet(form);
-    setSelectedPet({ ...form });
-    setIsEditing(false);
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-slate-400">Cargando pasaportes...</p>
-      </div>
-    );
-  }
-
-  if (!selectedPet) return null;
-
-  const breedInfo = breeds.find((b) => b.name === selectedPet.breed);
->>>>>>> origin/Charlie
 
   return (
     <div className="space-y-6">

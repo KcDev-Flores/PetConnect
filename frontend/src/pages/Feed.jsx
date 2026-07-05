@@ -5,31 +5,31 @@ import Stories from "../components/ui/Stories";
 import Icon from "../components/icons/Icons";
 
 export default function Feed() {
-  const [newPost, setNewPost] = useState("");
+  const [postDraft, setPostDraft] = useState({
+    content: "",
+    image: "",
+    location: "",
+  });
   const { feedPosts, loading, activePet, publishPost } = useFeed();
 
   const handlePublish = async (e) => {
     e.preventDefault();
-<<<<<<< HEAD
-    if (!newPost.trim()) return;
+    await publishPost({
+      content: postDraft.content,
+      image: postDraft.image,
+      location: { name: postDraft.location },
+    });
+    setPostDraft({ content: "", image: "", location: "" });
+  };
 
-    setFeedPosts([
-      {
-        id: Date.now(),
-        petName: activePet.name,
-        icon: activePet.icon,
-        content: newPost,
-        image: null,
-        likes: 0,
-        comments: 0,
-        time: "Ahora",
-      },
-      ...feedPosts,
-    ]);
-=======
-    await publishPost(newPost);
->>>>>>> origin/Charlie
-    setNewPost("");
+  const handlePhotoSelect = (file) => {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPostDraft((current) => ({ ...current, image: reader.result }));
+    };
+    reader.readAsDataURL(file);
   };
 
   if (loading) {
@@ -62,8 +62,13 @@ export default function Feed() {
           subtitle=""
           posts={feedPosts}
           activePet={activePet}
-          composerValue={newPost}
-          onComposerChange={(e) => setNewPost(e.target.value)}
+          composerValue={postDraft.content}
+          composerImage={postDraft.image}
+          composerLocation={postDraft.location}
+          onComposerChange={(e) => setPostDraft((current) => ({ ...current, content: e.target.value }))}
+          onPhotoSelect={handlePhotoSelect}
+          onPhotoRemove={() => setPostDraft((current) => ({ ...current, image: "" }))}
+          onLocationChange={(e) => setPostDraft((current) => ({ ...current, location: e.target.value }))}
           onPublish={handlePublish}
         />
       </section>

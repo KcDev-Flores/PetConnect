@@ -1,11 +1,6 @@
-<<<<<<< HEAD
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { currentUser, pets } from "../data/mockData";
-=======
-import { Link } from "react-router-dom";
-import { useProfile } from "../hooks/useProfile";
->>>>>>> origin/Charlie
 import Avatar from "../components/ui/Avatar";
 import PetCard from "../components/ui/PetCard";
 import Icon from "../components/icons/Icons";
@@ -32,7 +27,6 @@ const emptyPetForm = {
 };
 
 export default function Profile() {
-<<<<<<< HEAD
   const navigate = useNavigate();
   const [profile, setProfile] = useState({
     name: currentUser.name,
@@ -107,9 +101,6 @@ export default function Profile() {
   };
 
   const visibleProfile = isEditing ? draft : profile;
-=======
-  const { currentUser, userPets } = useProfile();
->>>>>>> origin/Charlie
 
   return (
     <div className="space-y-6">
