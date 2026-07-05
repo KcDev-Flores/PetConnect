@@ -118,9 +118,6 @@ CREATE TABLE IF NOT EXISTS comments (
 CREATE TABLE IF NOT EXISTS lost_pets (
   id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   pet_id          UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE, -- Relación directa con la mascota original
-  pet_name        TEXT NOT NULL,
-  breed           TEXT,
-  species         TEXT CHECK (species IN ('Perro', 'Gato', 'Otro')) DEFAULT 'Perro',
   description     TEXT,
   last_seen       TEXT,                     -- free-text location label
   last_seen_lat   DECIMAL(9,6),             -- optional: shared GPS latitude
