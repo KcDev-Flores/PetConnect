@@ -7,10 +7,10 @@
 -- Safe to re-run: fixed UUIDs + ON CONFLICT DO NOTHING.
 --
 -- NOTE: matches the current schema:
---   * no sightings / breeds tables (removed by the team)
---   * comments table
---   * lost_pets.pet_id is required, so every lost report links to
---     a real pet + owner.
+--   * no sightings / breeds / vaccines / vet_records / comments
+--     tables (removed for the MVP)
+--   * lost_pets.pet_id is optional; pet_name/breed/species are
+--     stored directly on the report.
 -- ============================================================
 
 
@@ -36,22 +36,6 @@ INSERT INTO pets (id, owner_id, name, breed, species, age, sex, color, weight, b
 ON CONFLICT (id) DO NOTHING;
 
 
--- ── Vaccines ─────────────────────────────────────────────
-INSERT INTO vaccines (id, pet_id, name, applied_date, next_due_date, veterinarian, notes) VALUES
-  ('cccccccc-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'Rabia',                '2026-01-15', '2027-01-15', 'Dra. Ana López', 'Sin reacciones adversas.'),
-  ('cccccccc-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', 'Moquillo (Distemper)', '2026-01-15', '2027-01-15', 'Dra. Ana López', NULL),
-  ('cccccccc-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000002', 'Triple felina',        '2026-02-10', '2027-02-10', 'Dr. José Mena',  NULL),
-  ('cccccccc-0000-0000-0000-000000000004', 'aaaaaaaa-0000-0000-0000-000000000003', 'Rabia',                '2025-11-01', '2026-11-01', 'Dr. José Mena',  NULL)
-ON CONFLICT (id) DO NOTHING;
-
-
--- ── Vet records ──────────────────────────────────────────
-INSERT INTO vet_records (id, pet_id, clinic_name, vet_name, phone, visit_date, condition, notes) VALUES
-  ('dddddddd-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'Clínica VetSalva', 'Dra. Ana López', '+503 2222-1111', '2026-01-15', 'Sano',              'Chequeo anual, peso ideal.'),
-  ('dddddddd-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000002', 'PetCare SS',       'Dr. José Mena',  '+503 2233-4455', '2026-02-10', 'Infección de oído', 'En tratamiento con gotas.')
-ON CONFLICT (id) DO NOTHING;
-
-
 -- ── Posts (social feed) ──────────────────────────────────
 INSERT INTO posts (id, pet_id, content, likes, comments) VALUES
   ('eeeeeeee-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', '¡Primer día en la playa! Max no quería salir del agua 🌊', 42, 2),
@@ -61,20 +45,12 @@ INSERT INTO posts (id, pet_id, content, likes, comments) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 
--- ── Comments (social feed comments) ──────────────────────
-INSERT INTO comments (id, post_id, author_id, content) VALUES
-  ('99999999-0000-0000-0000-000000000001', 'eeeeeeee-0000-0000-0000-000000000001', '22222222-0000-0000-0000-000000000002', '¡Qué lindo! A Luna también le gusta el agua.'),
-  ('99999999-0000-0000-0000-000000000002', 'eeeeeeee-0000-0000-0000-000000000001', '33333333-0000-0000-0000-000000000003', 'Se ve que la pasó genial 🐶'),
-  ('99999999-0000-0000-0000-000000000003', 'eeeeeeee-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000001', 'Jajaja toda una reina 👑')
-ON CONFLICT (id) DO NOTHING;
-
-
 -- ── Lost pets (emergency reports) ────────────────────────
--- pet_id links each report to the registered pet (required).
+-- pet_id is optional (Toby/Michi are registered; the stray dog is not).
 -- Toby shares location (lat/lng set) -> shows a map pin.
 -- Michi does NOT share location (lat/lng NULL) -> text only.
--- pet_name/breed/species come from the linked pet via pet_id (not duplicated).
-INSERT INTO lost_pets (id, pet_id, description, last_seen, last_seen_lat, last_seen_lng, last_seen_date, reward, owner_name, owner_phone) VALUES
-  ('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000004', 'Beagle tricolor, collar rojo con placa.',      'Colonia Escalón, San Salvador', 13.700800, -89.240900, '2026-07-03', '$50', 'Pedro Hernández', '+503 7123-4567'),
-  ('bbbbbbbb-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000005', 'Gato persa blanco, ojos azules, sin collar.', 'Antiguo Cuscatlán',             NULL,       NULL,        '2026-07-02', NULL,  'Laura Vega',      '+503 7890-1234')
+INSERT INTO lost_pets (id, pet_id, pet_name, breed, species, description, last_seen, last_seen_lat, last_seen_lng, last_seen_date, reward, owner_name, owner_phone) VALUES
+  ('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000004', 'Toby',        'Beagle', 'Perro', 'Beagle tricolor, collar rojo con placa.',         'Colonia Escalón, San Salvador', 13.700800, -89.240900, '2026-07-03', '$50', 'Pedro Hernández', '+503 7123-4567'),
+  ('bbbbbbbb-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000005', 'Michi',       'Persa',  'Gato',  'Gato persa blanco, ojos azules, sin collar.',     'Antiguo Cuscatlán',             NULL,       NULL,        '2026-07-02', NULL,  'Laura Vega',      '+503 7890-1234'),
+  ('bbbbbbbb-0000-0000-0000-000000000003', NULL,                                   'Desconocido', NULL,     'Perro', 'Perro callejero café, sin collar, muy asustado.', 'Bulevar de Los Héroes',          NULL,       NULL,        '2026-07-04', NULL,  'Anónimo',          '+503 7000-0000')
 ON CONFLICT (id) DO NOTHING;

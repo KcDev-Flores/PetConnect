@@ -6,7 +6,7 @@
 -- Editor (Database -> SQL Editor -> New Query) in order.
 --
 -- Keep it simple: these tables just STORE the basic data the
--- user enters (profile, vaccines, vet visits, illnesses) and the
+-- user enters (profile, pets, posts, lost reports) and the
 -- frontend shows it. No validation logic lives in the DB.
 --
 -- Conventions:
@@ -56,38 +56,7 @@ CREATE TABLE IF NOT EXISTS pets (
 
 
 -- ============================================================
--- 3. TABLE: vaccines (vaccines the pet has received)
--- ============================================================
-CREATE TABLE IF NOT EXISTS vaccines (
-  id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  pet_id        UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
-  name          TEXT NOT NULL,             -- e.g. "Rabia", "Moquillo"
-  applied_date  DATE,                      -- when it was applied
-  next_due_date DATE,                      -- next dose (optional)
-  veterinarian  TEXT,
-  notes         TEXT,
-  created_at    TIMESTAMPTZ DEFAULT now()
-);
-
-
--- ============================================================
--- 4. TABLE: vet_records (vet visits: clinic, illness, notes)
--- ============================================================
-CREATE TABLE IF NOT EXISTS vet_records (
-  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  pet_id       UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
-  clinic_name  TEXT,
-  vet_name     TEXT,
-  phone        TEXT,
-  visit_date   DATE,
-  condition    TEXT,                        -- enfermedad / diagnóstico
-  notes        TEXT,
-  created_at   TIMESTAMPTZ DEFAULT now()
-);
-
-
--- ============================================================
--- 5. TABLE: posts (social feed)
+-- 3. TABLE: posts (social feed)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS posts (
   id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -101,23 +70,34 @@ CREATE TABLE IF NOT EXISTS posts (
 
 
 -- ============================================================
--- 6. TABLE: comments (social feed comments)
+-- 4. VIEW: posts_with_pets (feed with pet info, camelCase for React)
 -- ============================================================
-CREATE TABLE IF NOT EXISTS comments (
-  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  post_id     UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-  author_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  content     TEXT NOT NULL,
-  created_at  TIMESTAMPTZ DEFAULT now()
-);
+CREATE OR REPLACE VIEW posts_with_pets AS
+SELECT
+  p.id,
+  p.pet_id      AS "petId",
+  pets.name     AS "petName",
+  pets.species  AS "icon",
+  p.content,
+  p.image_url   AS "image",
+  p.likes,
+  p.comments,
+  p.created_at  AS "time"
+FROM posts p
+JOIN pets ON pets.id = p.pet_id;
 
 
 -- ============================================================
--- 7. TABLE: lost_pets (emergency reports)
+-- 5. TABLE: lost_pets (emergency reports)
 -- ============================================================
+-- pet_id is OPTIONAL: anyone can report a stray pet without it
+-- being registered. pet_name/breed/species are entered free-form.
 CREATE TABLE IF NOT EXISTS lost_pets (
   id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  pet_id          UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE, -- Relación directa con la mascota original
+  pet_id          UUID REFERENCES pets(id) ON DELETE CASCADE, -- optional link to a registered pet
+  pet_name        TEXT NOT NULL,
+  breed           TEXT,
+  species         TEXT,
   description     TEXT,
   last_seen       TEXT,                     -- free-text location label
   last_seen_lat   DECIMAL(9,6),             -- optional: shared GPS latitude
