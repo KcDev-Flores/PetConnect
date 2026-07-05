@@ -76,6 +76,10 @@ export const useAuthStore = create((set, get) => ({
   /** Cierra la sesión y limpia el estado. */
   logout: async () => {
     await supabase.auth.signOut();
+    // Limpiar mascotas y alertas locales para que no se hereden entre cuentas
+    window.localStorage.removeItem("petconnect:owned-pets");
+    window.localStorage.removeItem("petconnect:deleted-owned-pet-ids");
+    window.localStorage.removeItem("petconnect:lost-alert-posts");
     set({ session: null, user: null, error: null });
   },
 

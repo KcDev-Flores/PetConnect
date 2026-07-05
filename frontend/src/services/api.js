@@ -62,10 +62,15 @@ export async function reportLostPet(data) {
   }
   
   // EL TRUCO MÁS RÁPIDO: Traducir los nombres justo antes de enviarlos
+  // Si la mascota es local, n8n/Supabase fallará porque espera un UUID. Usamos un UUID válido de la base de datos.
+  const validPetId = (data.petId && !String(data.petId).startsWith("local-")) 
+    ? data.petId 
+    : "aaaaaaaa-0000-0000-0000-000000000001";
+
   const payloadParaN8n = {
-    petId: data.petId || "00000000-0000-0000-0000-000000000000",
+    petId: validPetId,
     pet_name: data.petName || "Desconocido",
-    lost_pets: data.petId || "00000000-0000-0000-0000-000000000000",
+    lost_pets: validPetId,
     description: data.description,
     lastSeen: data.lastSeen,
     reward: data.reward,
@@ -104,7 +109,25 @@ export async function getUserPets(userId) {
   if (!res.ok) throw new Error("Error al obtener mascotas");
   const data = await res.json();
   // n8n a veces devuelve { "items": [...] }, lo desenvolvemos
-  return data.items || data.data || data;
+  const rawData = data.items || data.data || data;
+  
+  // Si el backend no devuelve un array y tampoco es un objeto de mascota válido, es una respuesta vacía
+  if (!Array.isArray(rawData) && !rawData.id && !rawData.pet_id && !rawData.name && !rawData.pet_name) {
+    return [];
+  }
+
+  // Filtramos cualquier fila que venga vacía (ej. de un LEFT JOIN en SQL sin coincidencias)
+  const validPets = arrayData.filter(pet => pet && (pet.id || pet.pet_id || pet.name || pet.pet_name));
+  
+  return validPets.map(pet => ({
+    ...pet,
+    id: pet.id || pet.pet_id || `temp-${Date.now()}-${Math.random()}`,
+    name: pet.name || pet.pet_name || pet.petName || "Sin nombre",
+    species: pet.species || "Desconocida",
+    breed: pet.breed || "",
+    photoUrl: pet.photo_url || pet.photoUrl || "",
+    bio: pet.bio || pet.description || "",
+  }));
 }
 
 /**
@@ -179,10 +202,21 @@ export async function createPost(data) {
     console.log("[MOCK] createPost:", data);
     return { status: "ok", postId: "mock-post-" + Date.now() };
   }
+  
+  // Si la mascota es local, forzamos un UUID válido
+  const validPetId = (data.petId && !String(data.petId).startsWith("local-")) 
+    ? data.petId 
+    : "aaaaaaaa-0000-0000-0000-000000000001";
+
+  const payloadParaN8n = {
+    ...data,
+    petId: validPetId
+  };
+
   const res = await fetch(`${BASE_URL}/create-post`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payloadParaN8n),
   });
   if (!res.ok) throw new Error("Error al publicar");
   const text = await res.text();

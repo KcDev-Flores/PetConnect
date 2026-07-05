@@ -192,8 +192,8 @@ export default function Profile() {
       setOwnedExtraPets(savedPets);
     }
 
-    if (apiPets.some((petId) => String(petId) === String(pet.id))) {
-      const nextDeletedPetIds = deletedPetIds.some((petId) => String(petId) === String(pet.id))
+    if (apiPets.some((apiPet) => String(apiPet.id) === String(pet.id))) {
+      const nextDeletedPetIds = deletedPetIds.some((id) => String(id) === String(pet.id))
         ? deletedPetIds
         : [...deletedPetIds, pet.id];
 
