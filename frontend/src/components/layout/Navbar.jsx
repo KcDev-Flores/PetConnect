@@ -1,5 +1,6 @@
 import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import Icon, { Logo } from "../icons/Icons";
+import { useAuth } from "../../hooks/useAuth";
 
 const links = [
   { to: "/", label: "Feed", icon: "home", end: true },
@@ -12,6 +13,7 @@ const links = [
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAuthenticated, logoutUser } = useAuth();
 
   const handleCreatePost = () => {
     if (location.pathname !== "/") {
@@ -23,10 +25,8 @@ export default function Navbar() {
     }, 80);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("petconnect:auth-token");
-    localStorage.removeItem("petconnect:user");
-    navigate("/login");
+  const handleLogout = async () => {
+    await logoutUser();
   };
 
   return (
@@ -58,20 +58,30 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-
-          <Link
-            to="/login?mode=register"
-            className="hidden text-xs font-semibold text-slate-500 transition-colors hover:text-emerald-700 sm:block"
-          >
-            No tienes cuenta? <span className="font-black text-emerald-600">Registrate aqui</span>
-          </Link>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-colors"
-          >
-            Cerrar sesion
-          </button>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition-colors"
+            >
+              Cerrar sesión
+            </button>
+          ) : (
+            <>
+              <Link
+                to="/login?mode=register"
+                className="hidden text-xs font-semibold text-slate-500 transition-colors hover:text-emerald-700 sm:block"
+              >
+                No tienes cuenta? <span className="font-black text-emerald-600">Regístrate</span>
+              </Link>
+              <Link
+                to="/login"
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-xl transition-colors"
+              >
+                Iniciar sesión
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
