@@ -1,36 +1,11 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
 import { pets, breeds, currentUser } from "../data/mockData";
 import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
 import Icon from "../components/icons/Icons";
 import { FormField, inputClass, textareaClass } from "../components/ui/FormPrimitives";
-import { loadOwnedPets } from "../data/localPets";
-
-function getModelProfile(pet, fileName = "") {
-  const text = `${pet.name} ${pet.species} ${pet.breed} ${fileName}`.toLowerCase();
-  const species = text.includes("gato") || text.includes("cat") || text.includes("michi")
-    ? "Gato"
-    : "Perro";
-
-  const coat = text.includes("negro")
-    ? "#111827"
-    : text.includes("blanco")
-      ? "#F8FAFC"
-      : text.includes("dorado") || text.includes("golden")
-        ? "#D97706"
-        : pet.color || "#10B981";
-
-  return {
-    species,
-    coat,
-    accent: species === "Gato" ? "#38BDF8" : "#10B981",
-    confidence: fileName ? 0.86 : 0.72,
-    source: fileName ? "Foto subida" : "Datos del perfil",
-  };
-}
+import { loadOwnedPets, saveOwnedPets } from "../data/localPets";
 
 function createPassportInfo(pet) {
   return {
@@ -41,77 +16,31 @@ function createPassportInfo(pet) {
   };
 }
 
-function GeneratedPetMesh({ profile }) {
-  const isCat = profile.species === "Gato";
+function createVeterinaryInfo(pet) {
+  return pet.veterinaryInfo ?? {
+    clinic: "Clinica veterinaria pendiente",
+    veterinarian: "Veterinario pendiente",
+    license: "JVPM-0000",
+    phone: "+503 7000-0000",
+    email: "veterinaria@petconnect.sv",
+    address: "San Salvador, El Salvador",
+    lastCheckup: "Julio 2026",
+    nextCheckup: "Enero 2027",
+    notes: "Sin observaciones medicas criticas registradas.",
+  };
+}
 
-  return (
-    <group rotation={[0, -0.35, 0]} position={[0, -0.15, 0]}>
-      <mesh position={[0, 0.05, 0]}>
-        <sphereGeometry args={[0.78, 48, 48]} />
-        <meshStandardMaterial color={profile.coat} roughness={0.55} metalness={0.05} />
-      </mesh>
-      <mesh position={[0, 0.86, 0.08]}>
-        <sphereGeometry args={[0.48, 40, 40]} />
-        <meshStandardMaterial color={profile.coat} roughness={0.5} />
-      </mesh>
-
-      {isCat ? (
-        <>
-          <mesh position={[-0.28, 1.28, 0.08]} rotation={[0, 0, -0.25]}>
-            <coneGeometry args={[0.18, 0.42, 4]} />
-            <meshStandardMaterial color={profile.coat} roughness={0.55} />
-          </mesh>
-          <mesh position={[0.28, 1.28, 0.08]} rotation={[0, 0, 0.25]}>
-            <coneGeometry args={[0.18, 0.42, 4]} />
-            <meshStandardMaterial color={profile.coat} roughness={0.55} />
-          </mesh>
-          <mesh position={[0.82, 0.15, -0.08]} rotation={[0.2, 0, -0.9]}>
-            <torusGeometry args={[0.34, 0.055, 16, 56, 4.4]} />
-            <meshStandardMaterial color={profile.coat} roughness={0.5} />
-          </mesh>
-        </>
-      ) : (
-        <>
-          <mesh position={[-0.38, 1.08, 0.02]} rotation={[0, 0, 0.55]}>
-            <sphereGeometry args={[0.2, 24, 24]} />
-            <meshStandardMaterial color={profile.coat} roughness={0.55} />
-          </mesh>
-          <mesh position={[0.38, 1.08, 0.02]} rotation={[0, 0, -0.55]}>
-            <sphereGeometry args={[0.2, 24, 24]} />
-            <meshStandardMaterial color={profile.coat} roughness={0.55} />
-          </mesh>
-          <mesh position={[0.82, 0.1, -0.12]} rotation={[0.25, 0, -0.65]}>
-            <torusGeometry args={[0.32, 0.06, 16, 56, 3.4]} />
-            <meshStandardMaterial color={profile.coat} roughness={0.55} />
-          </mesh>
-        </>
-      )}
-
-      {[-0.38, 0.38].map((x) => (
-        <mesh key={`eye-${x}`} position={[x, 0.98, 0.46]}>
-          <sphereGeometry args={[0.055, 16, 16]} />
-          <meshStandardMaterial color="#020617" />
-        </mesh>
-      ))}
-
-      <mesh position={[0, 0.82, 0.5]}>
-        <sphereGeometry args={[0.065, 16, 16]} />
-        <meshStandardMaterial color="#020617" />
-      </mesh>
-
-      {[-0.42, 0.42].map((x) => (
-        <mesh key={`leg-${x}`} position={[x, -0.58, 0.28]}>
-          <cylinderGeometry args={[0.11, 0.14, 0.62, 20]} />
-          <meshStandardMaterial color={profile.coat} roughness={0.6} />
-        </mesh>
-      ))}
-
-      <mesh position={[0, -0.94, 0.28]} scale={[1.1, 0.18, 0.46]}>
-        <sphereGeometry args={[0.42, 32, 18]} />
-        <meshStandardMaterial color={profile.accent} roughness={0.4} />
-      </mesh>
-    </group>
-  );
+function createTravelInfo(pet) {
+  return pet.travelInfo ?? {
+    destination: "Pais destino por definir",
+    rabiesVaccine: "Vigente",
+    healthCertificate: "Pendiente de emision",
+    exportPermit: "Pendiente",
+    parasiteTreatment: "Pendiente 24-48h antes del viaje",
+    microchipStandard: "ISO 11784/11785",
+    airlineCrate: "Transportadora IATA pendiente de validar",
+    notes: "Validar requisitos especificos con la embajada, aerolinea y autoridad sanitaria del pais destino.",
+  };
 }
 
 function DigitalPassportCard({ passport, isEditing, onChange }) {
@@ -199,43 +128,221 @@ function DigitalPassportCard({ passport, isEditing, onChange }) {
   );
 }
 
-function PetModelStage({ pet }) {
-  const profile = pet.modelProfile ?? getModelProfile(pet);
+function InfoLine({ label, value }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <dt className="text-slate-400">{label}</dt>
+      <dd className="max-w-[62%] text-right font-semibold text-slate-800">{value}</dd>
+    </div>
+  );
+}
+
+function VeterinaryInfoCard({ veterinaryInfo, isEditing, onChange }) {
+  const setVeterinaryField = (field) => (e) => {
+    onChange((current) => ({
+      ...current,
+      veterinaryInfo: {
+        ...current.veterinaryInfo,
+        [field]: e.target.value,
+      },
+    }));
+  };
 
   return (
-    <section className="rounded-3xl border border-slate-100 bg-slate-950 p-4 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">R3F ready</p>
-          <h3 className="text-white font-bold">Modelo 3D</h3>
+    <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-600">
+          <Icon name="activity" size={22} />
         </div>
-        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-white/10 text-emerald-200">
-          <Icon name="spark" size={20} />
+        <div>
+          <h3 className="font-black text-slate-900">Veterinario y salud</h3>
+          <p className="text-xs font-semibold text-slate-400">Contacto medico, controles y observaciones</p>
         </div>
       </div>
 
-      <div
-        id="pet-r3f-stage"
-        data-r3f-ready="true"
-        className="relative aspect-[4/5] min-h-[300px] overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_50%_28%,rgba(16,185,129,0.38),transparent_34%),linear-gradient(145deg,#0f172a,#111827_45%,#042f2e)]"
-      >
-        <Canvas camera={{ position: [0, 1.2, 4.2], fov: 38 }}>
-          <ambientLight intensity={1.6} />
-          <directionalLight position={[3, 4, 5]} intensity={2.4} />
-          <pointLight position={[-3, 2, 3]} intensity={1.1} color={profile.accent} />
-          <GeneratedPetMesh profile={profile} />
-          <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={1.1} />
-        </Canvas>
-        <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/10 bg-white/10 p-3 text-white backdrop-blur">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-bold">{pet.name}</p>
-              <p className="text-xs text-slate-300">{profile.species} generado desde {profile.source}</p>
-            </div>
-            <Badge variant="success">{Math.round(profile.confidence * 100)}%</Badge>
+      {isEditing ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FormField label="Clinica">
+            <input value={veterinaryInfo.clinic} onChange={setVeterinaryField("clinic")} className={inputClass} />
+          </FormField>
+          <FormField label="Veterinario">
+            <input value={veterinaryInfo.veterinarian} onChange={setVeterinaryField("veterinarian")} className={inputClass} />
+          </FormField>
+          <FormField label="Registro profesional">
+            <input value={veterinaryInfo.license} onChange={setVeterinaryField("license")} className={inputClass} />
+          </FormField>
+          <FormField label="Telefono">
+            <input value={veterinaryInfo.phone} onChange={setVeterinaryField("phone")} className={inputClass} />
+          </FormField>
+          <FormField label="Correo">
+            <input value={veterinaryInfo.email} onChange={setVeterinaryField("email")} className={inputClass} />
+          </FormField>
+          <FormField label="Direccion">
+            <input value={veterinaryInfo.address} onChange={setVeterinaryField("address")} className={inputClass} />
+          </FormField>
+          <FormField label="Ultimo chequeo">
+            <input value={veterinaryInfo.lastCheckup} onChange={setVeterinaryField("lastCheckup")} className={inputClass} />
+          </FormField>
+          <FormField label="Proximo chequeo">
+            <input value={veterinaryInfo.nextCheckup} onChange={setVeterinaryField("nextCheckup")} className={inputClass} />
+          </FormField>
+          <div className="sm:col-span-2">
+            <FormField label="Notas medicas">
+              <textarea value={veterinaryInfo.notes} onChange={setVeterinaryField("notes")} rows={3} className={textareaClass} />
+            </FormField>
           </div>
         </div>
+      ) : (
+        <>
+          <dl className="space-y-3 text-sm">
+            <InfoLine label="Clinica" value={veterinaryInfo.clinic} />
+            <InfoLine label="Veterinario" value={veterinaryInfo.veterinarian} />
+            <InfoLine label="Registro" value={veterinaryInfo.license} />
+            <InfoLine label="Telefono" value={veterinaryInfo.phone} />
+            <InfoLine label="Correo" value={veterinaryInfo.email} />
+            <InfoLine label="Direccion" value={veterinaryInfo.address} />
+          </dl>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Ultimo chequeo</p>
+              <p className="mt-1 font-black text-slate-800">{veterinaryInfo.lastCheckup}</p>
+            </div>
+            <div className="rounded-2xl bg-emerald-50 p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">Proximo chequeo</p>
+              <p className="mt-1 font-black text-emerald-800">{veterinaryInfo.nextCheckup}</p>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm leading-relaxed text-sky-900">
+            {veterinaryInfo.notes}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function TravelDocumentsCard({ travelInfo, passport, isEditing, onChange }) {
+  const setTravelField = (field) => (e) => {
+    onChange((current) => ({
+      ...current,
+      travelInfo: {
+        ...current.travelInfo,
+        [field]: e.target.value,
+      },
+    }));
+  };
+
+  const documents = [
+    {
+      title: "Pasaporte digital o cartilla sanitaria",
+      detail: `ID ${passport.code} con datos del animal y del dueno.`,
+      status: passport.status,
+    },
+    {
+      title: "Microchip compatible",
+      detail: `${passport.microchip} registrado bajo estandar ${travelInfo.microchipStandard}.`,
+      status: passport.microchip ? "Listo" : "Pendiente",
+    },
+    {
+      title: "Vacuna contra la rabia",
+      detail: "Debe estar vigente y dentro del periodo aceptado por el pais destino.",
+      status: travelInfo.rabiesVaccine,
+    },
+    {
+      title: "Certificado internacional de salud",
+      detail: "Emitido por veterinario autorizado antes del viaje.",
+      status: travelInfo.healthCertificate,
+    },
+    {
+      title: "Permiso sanitario de exportacion",
+      detail: "Documento solicitado por la autoridad sanitaria del pais de salida.",
+      status: travelInfo.exportPermit,
+    },
+    {
+      title: "Desparasitacion y tratamientos",
+      detail: "Algunos paises la exigen 24-48 horas antes del vuelo.",
+      status: travelInfo.parasiteTreatment,
+    },
+    {
+      title: "Requisitos de aerolinea",
+      detail: travelInfo.airlineCrate,
+      status: "Revisar",
+    },
+  ];
+
+  return (
+    <section className="rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-emerald-50 p-5 shadow-sm">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-amber-100 text-amber-700">
+          <Icon name="passport" size={22} />
+        </div>
+        <div>
+          <h3 className="font-black text-slate-900">Viaje internacional</h3>
+          <p className="text-xs font-semibold text-slate-500">Documentacion recomendada para viajar a otro pais</p>
+        </div>
       </div>
+
+      {isEditing ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FormField label="Pais destino">
+            <input value={travelInfo.destination} onChange={setTravelField("destination")} className={inputClass} />
+          </FormField>
+          <FormField label="Vacuna rabia">
+            <input value={travelInfo.rabiesVaccine} onChange={setTravelField("rabiesVaccine")} className={inputClass} />
+          </FormField>
+          <FormField label="Certificado de salud">
+            <input value={travelInfo.healthCertificate} onChange={setTravelField("healthCertificate")} className={inputClass} />
+          </FormField>
+          <FormField label="Permiso de exportacion">
+            <input value={travelInfo.exportPermit} onChange={setTravelField("exportPermit")} className={inputClass} />
+          </FormField>
+          <FormField label="Desparasitacion">
+            <input value={travelInfo.parasiteTreatment} onChange={setTravelField("parasiteTreatment")} className={inputClass} />
+          </FormField>
+          <FormField label="Estandar microchip">
+            <input value={travelInfo.microchipStandard} onChange={setTravelField("microchipStandard")} className={inputClass} />
+          </FormField>
+          <div className="sm:col-span-2">
+            <FormField label="Requisitos de aerolinea">
+              <input value={travelInfo.airlineCrate} onChange={setTravelField("airlineCrate")} className={inputClass} />
+            </FormField>
+          </div>
+          <div className="sm:col-span-2">
+            <FormField label="Notas de viaje">
+              <textarea value={travelInfo.notes} onChange={setTravelField("notes")} rows={3} className={textareaClass} />
+            </FormField>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="mb-4 rounded-2xl bg-white/80 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-600">Destino</p>
+            <p className="mt-1 text-lg font-black text-slate-900">{travelInfo.destination}</p>
+          </div>
+
+          <div className="grid gap-3">
+            {documents.map((document) => (
+              <div key={document.title} className="rounded-2xl border border-white bg-white/85 p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="font-bold text-slate-900">{document.title}</h4>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-500">{document.detail}</p>
+                  </div>
+                  <Badge variant={document.status === "Listo" || document.status === "Verificado" || document.status === "Vigente" ? "success" : "warning"}>
+                    {document.status}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+            {travelInfo.notes}
+          </div>
+        </>
+      )}
     </section>
   );
 }
@@ -291,7 +398,7 @@ function AnimalPassportCard({ pet, isSelected, onClick }) {
 
 export default function Passport() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [localOwnedPets] = useState(() => loadOwnedPets());
+  const [localOwnedPets, setLocalOwnedPets] = useState(() => loadOwnedPets());
   const allPets = [...pets, ...localOwnedPets];
   const loggedPetIds = [...currentUser.pets, ...localOwnedPets.map((pet) => pet.id)];
   const requestedPet = allPets.find((pet) =>
@@ -303,7 +410,8 @@ export default function Passport() {
       ...pet,
       photoUrl: pet.photoUrl || "",
       passport: pet.passport ?? createPassportInfo(pet),
-      modelProfile: pet.modelProfile ?? getModelProfile(pet),
+      veterinaryInfo: createVeterinaryInfo(pet),
+      travelInfo: createTravelInfo(pet),
     }))
   );
   const [selectedPetId, setSelectedPetId] = useState(initialPetId);
@@ -316,15 +424,24 @@ export default function Passport() {
   const handleSave = () => {
     if (!canEditSelectedPet || !form) return;
 
-    const modelProfile = form.modelProfile ?? getModelProfile(form);
     const passport = form.passport ?? createPassportInfo(form);
+    const veterinaryInfo = form.veterinaryInfo ?? createVeterinaryInfo(form);
+    const travelInfo = form.travelInfo ?? createTravelInfo(form);
+    const updatedPet = { ...selectedPet, ...form, passport, veterinaryInfo, travelInfo };
 
     setPetProfiles((current) =>
       current.map((pet) =>
-        pet.id === selectedPetId ? { ...pet, ...form, passport, modelProfile } : pet
+        pet.id === selectedPetId ? updatedPet : pet
       )
     );
-    setForm((current) => (current ? { ...current, passport, modelProfile } : current));
+    if (localOwnedPets.some((pet) => pet.id === selectedPetId)) {
+      const nextLocalOwnedPets = localOwnedPets.map((pet) =>
+        pet.id === selectedPetId ? updatedPet : pet
+      );
+      setLocalOwnedPets(nextLocalOwnedPets);
+      saveOwnedPets(nextLocalOwnedPets);
+    }
+    setForm((current) => (current ? { ...current, passport, veterinaryInfo, travelInfo } : current));
     setIsEditing(false);
   };
 
@@ -355,7 +472,6 @@ export default function Passport() {
       return {
         ...current,
         photoUrl,
-        modelProfile: getModelProfile(current, file.name),
       };
     });
   };
@@ -376,6 +492,8 @@ export default function Passport() {
   const visiblePet = isEditing && form ? form : selectedPet;
   const breedInfo = visiblePet ? breeds.find((b) => b.name === visiblePet.breed) : null;
   const passportInfo = visiblePet ? visiblePet.passport ?? createPassportInfo(visiblePet) : null;
+  const veterinaryInfo = visiblePet ? visiblePet.veterinaryInfo ?? createVeterinaryInfo(visiblePet) : null;
+  const travelInfo = visiblePet ? visiblePet.travelInfo ?? createTravelInfo(visiblePet) : null;
 
   return (
     <div className="space-y-6">
@@ -499,9 +617,9 @@ export default function Passport() {
                           </span>
                         )}
                         <span>
-                          <span className="block text-sm font-bold text-slate-800">Subir foto y generar modelo</span>
+                          <span className="block text-sm font-bold text-slate-800">Subir foto de la mascota</span>
                           <span className="mt-1 block text-xs text-slate-500">
-                            La vista 3D se actualiza con una simulacion IA lista para conectar a Fal.
+                            Esta imagen se usara en el pasaporte y en la tarjeta del animal.
                           </span>
                         </span>
                         <input
@@ -546,17 +664,6 @@ export default function Passport() {
                       />
                     </FormField>
 
-                    {form.modelProfile && (
-                      <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800">
-                        <div className="flex items-center gap-2 font-bold">
-                          <Icon name="spark" size={18} />
-                          Modelo IA preparado
-                        </div>
-                        <p className="mt-1">
-                          Perfil detectado: {form.modelProfile.species}. Confianza visual: {Math.round(form.modelProfile.confidence * 100)}%.
-                        </p>
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <>
@@ -613,32 +720,11 @@ export default function Passport() {
                   <p className="text-xs text-emerald-700 mt-1 font-semibold">Verificado</p>
                 </div>
               </div>
+
             </div>
           </div>
 
           <div className="space-y-4">
-            <PetModelStage pet={visiblePet} />
-
-            {breedInfo && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-                <h3 className="font-bold text-slate-800 mb-3">Info de la raza</h3>
-                <dl className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <dt className="text-slate-400">Especie</dt>
-                    <dd className="font-medium">{breedInfo.species}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-slate-400">Tamaño</dt>
-                    <dd className="font-medium">{breedInfo.size}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-slate-400">Origen</dt>
-                    <dd className="font-medium">{breedInfo.origin}</dd>
-                  </div>
-                </dl>
-              </div>
-            )}
-
             <Link
               to="/profile"
               className="group block bg-white rounded-2xl shadow-sm border border-slate-100 p-5 transition-all hover:border-emerald-200 hover:shadow-md"
@@ -665,7 +751,46 @@ export default function Passport() {
               isEditing={isEditing}
               onChange={setForm}
             />
+
+            {veterinaryInfo && (
+              <VeterinaryInfoCard
+                veterinaryInfo={veterinaryInfo}
+                isEditing={isEditing}
+                onChange={setForm}
+              />
+            )}
+
+            {breedInfo && (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                <h3 className="font-bold text-slate-800 mb-3">Info de la raza</h3>
+                <dl className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <dt className="text-slate-400">Especie</dt>
+                    <dd className="font-medium">{breedInfo.species}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-slate-400">Tamaño</dt>
+                    <dd className="font-medium">{breedInfo.size}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-slate-400">Origen</dt>
+                    <dd className="font-medium">{breedInfo.origin}</dd>
+                  </div>
+                </dl>
+              </div>
+            )}
           </div>
+
+          {travelInfo && (
+            <div className="lg:col-span-3">
+              <TravelDocumentsCard
+                travelInfo={travelInfo}
+                passport={passportInfo}
+                isEditing={isEditing}
+                onChange={setForm}
+              />
+            </div>
+          )}
         </div>
       ) : null}
     </div>

@@ -24,6 +24,23 @@ const emptyPetForm = {
   microchip: "",
   issuedAt: "",
   passportStatus: "Verificado",
+  clinic: "",
+  veterinarian: "",
+  license: "",
+  vetPhone: "",
+  vetEmail: "",
+  vetAddress: "",
+  lastCheckup: "",
+  nextCheckup: "",
+  medicalNotes: "",
+  travelDestination: "",
+  rabiesVaccine: "Vigente",
+  healthCertificate: "",
+  exportPermit: "",
+  parasiteTreatment: "",
+  microchipStandard: "ISO 11784/11785",
+  airlineCrate: "",
+  travelNotes: "",
 };
 
 export default function Profile() {
@@ -383,6 +400,181 @@ export default function Profile() {
                       <option value="En revision">En revision</option>
                     </select>
                   </FormField>
+                </div>
+              </div>
+
+              <div className="md:col-span-2 rounded-2xl border border-sky-100 bg-sky-50/50 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <Icon name="activity" size={20} className="text-sky-700" />
+                  <div>
+                    <h4 className="font-bold text-sky-950">Veterinario y salud</h4>
+                    <p className="text-xs text-sky-700">
+                      Informacion medica que aparecera en el perfil de la mascota.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField label="Clinica veterinaria">
+                    <input
+                      value={petDraft.clinic}
+                      onChange={setPetField("clinic")}
+                      className={inputClass}
+                      placeholder="Ej: Clinica Animal Care"
+                    />
+                  </FormField>
+                  <FormField label="Veterinario responsable">
+                    <input
+                      value={petDraft.veterinarian}
+                      onChange={setPetField("veterinarian")}
+                      className={inputClass}
+                      placeholder="Ej: Dra. Ana Lopez"
+                    />
+                  </FormField>
+                  <FormField label="Registro profesional">
+                    <input
+                      value={petDraft.license}
+                      onChange={setPetField("license")}
+                      className={inputClass}
+                      placeholder="Ej: JVPM-1234"
+                    />
+                  </FormField>
+                  <FormField label="Telefono veterinario">
+                    <input
+                      value={petDraft.vetPhone}
+                      onChange={setPetField("vetPhone")}
+                      className={inputClass}
+                      placeholder="+503 0000-0000"
+                    />
+                  </FormField>
+                  <FormField label="Correo veterinario">
+                    <input
+                      type="email"
+                      value={petDraft.vetEmail}
+                      onChange={setPetField("vetEmail")}
+                      className={inputClass}
+                      placeholder="clinica@email.com"
+                    />
+                  </FormField>
+                  <FormField label="Direccion de clinica">
+                    <input
+                      value={petDraft.vetAddress}
+                      onChange={setPetField("vetAddress")}
+                      className={inputClass}
+                      placeholder="Ciudad, pais"
+                    />
+                  </FormField>
+                  <FormField label="Ultimo chequeo">
+                    <input
+                      value={petDraft.lastCheckup}
+                      onChange={setPetField("lastCheckup")}
+                      className={inputClass}
+                      placeholder="Ej: Julio 2026"
+                    />
+                  </FormField>
+                  <FormField label="Proximo chequeo">
+                    <input
+                      value={petDraft.nextCheckup}
+                      onChange={setPetField("nextCheckup")}
+                      className={inputClass}
+                      placeholder="Ej: Enero 2027"
+                    />
+                  </FormField>
+                  <div className="md:col-span-2">
+                    <FormField label="Notas medicas">
+                      <textarea
+                        value={petDraft.medicalNotes}
+                        onChange={setPetField("medicalNotes")}
+                        className={textareaClass}
+                        rows={3}
+                        placeholder="Alergias, tratamientos, observaciones o cuidados especiales."
+                      />
+                    </FormField>
+                  </div>
+                </div>
+              </div>
+
+              <div className="md:col-span-2 rounded-2xl border border-amber-100 bg-amber-50/50 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <Icon name="passport" size={20} className="text-amber-700" />
+                  <div>
+                    <h4 className="font-bold text-amber-950">Viaje internacional</h4>
+                    <p className="text-xs text-amber-700">
+                      Requisitos y documentos necesarios para viajar a otro pais.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField label="Pais destino">
+                    <input
+                      value={petDraft.travelDestination}
+                      onChange={setPetField("travelDestination")}
+                      className={inputClass}
+                      placeholder="Ej: Estados Unidos"
+                    />
+                  </FormField>
+                  <FormField label="Vacuna contra la rabia">
+                    <input
+                      value={petDraft.rabiesVaccine}
+                      onChange={setPetField("rabiesVaccine")}
+                      className={inputClass}
+                      placeholder="Ej: Vigente"
+                    />
+                  </FormField>
+                  <FormField label="Certificado internacional de salud">
+                    <input
+                      value={petDraft.healthCertificate}
+                      onChange={setPetField("healthCertificate")}
+                      className={inputClass}
+                      placeholder="Ej: Pendiente de emision"
+                    />
+                  </FormField>
+                  <FormField label="Permiso sanitario de exportacion">
+                    <input
+                      value={petDraft.exportPermit}
+                      onChange={setPetField("exportPermit")}
+                      className={inputClass}
+                      placeholder="Ej: Pendiente"
+                    />
+                  </FormField>
+                  <FormField label="Desparasitacion">
+                    <input
+                      value={petDraft.parasiteTreatment}
+                      onChange={setPetField("parasiteTreatment")}
+                      className={inputClass}
+                      placeholder="Ej: 24-48h antes del viaje"
+                    />
+                  </FormField>
+                  <FormField label="Estandar de microchip">
+                    <input
+                      value={petDraft.microchipStandard}
+                      onChange={setPetField("microchipStandard")}
+                      className={inputClass}
+                      placeholder="ISO 11784/11785"
+                    />
+                  </FormField>
+                  <div className="md:col-span-2">
+                    <FormField label="Requisitos de aerolinea">
+                      <input
+                        value={petDraft.airlineCrate}
+                        onChange={setPetField("airlineCrate")}
+                        className={inputClass}
+                        placeholder="Ej: Transportadora IATA validada"
+                      />
+                    </FormField>
+                  </div>
+                  <div className="md:col-span-2">
+                    <FormField label="Notas de viaje">
+                      <textarea
+                        value={petDraft.travelNotes}
+                        onChange={setPetField("travelNotes")}
+                        className={textareaClass}
+                        rows={3}
+                        placeholder="Requisitos de embajada, aerolinea, cuarentena o autoridad sanitaria."
+                      />
+                    </FormField>
+                  </div>
                 </div>
               </div>
             </div>
