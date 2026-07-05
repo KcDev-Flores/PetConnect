@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { usePets } from "../hooks/usePets";
+import { Link, useSearchParams } from "react-router-dom";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
+import { pets, breeds, currentUser } from "../data/mockData";
 import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
 import Icon from "../components/icons/Icons";
@@ -287,34 +290,92 @@ function AnimalPassportCard({ pet, isSelected, onClick }) {
 }
 
 export default function Passport() {
-  const { pets, breeds, savePet, loading } = usePets();
-  const [selectedPet, setSelectedPet] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [localOwnedPets] = useState(() => loadOwnedPets());
+  const allPets = [...pets, ...localOwnedPets];
+  const loggedPetIds = [...currentUser.pets, ...localOwnedPets.map((pet) => pet.id)];
+  const requestedPet = allPets.find((pet) =>
+    String(pet.id) === searchParams.get("pet") && loggedPetIds.includes(pet.id)
+  );
+  const initialPetId = requestedPet?.id ?? null;
+  const [petProfiles, setPetProfiles] = useState(() =>
+    allPets.map((pet) => ({
+      ...pet,
+      photoUrl: pet.photoUrl || "",
+      passport: pet.passport ?? createPassportInfo(pet),
+      modelProfile: pet.modelProfile ?? getModelProfile(pet),
+    }))
+  );
+  const [selectedPetId, setSelectedPetId] = useState(initialPetId);
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState(null);
+  const ownedPetProfiles = petProfiles.filter((pet) => loggedPetIds.includes(pet.id));
+  const selectedPet = ownedPetProfiles.find((pet) => pet.id === selectedPetId) ?? null;
+  const [form, setForm] = useState(selectedPet ? { ...selectedPet } : null);
+  const canEditSelectedPet = Boolean(selectedPet && loggedPetIds.includes(selectedPet.id));
 
-  // Initialize selected pet once pets are loaded
-  if (!selectedPet && pets.length > 0) {
-    setSelectedPet(pets[0]);
-    setForm({ ...pets[0] });
-  }
+  const handleSave = () => {
+    if (!canEditSelectedPet || !form) return;
 
-  const handleSave = async () => {
-    await savePet(form);
-    setSelectedPet({ ...form });
+    const modelProfile = form.modelProfile ?? getModelProfile(form);
+    const passport = form.passport ?? createPassportInfo(form);
+
+    setPetProfiles((current) =>
+      current.map((pet) =>
+        pet.id === selectedPetId ? { ...pet, ...form, passport, modelProfile } : pet
+      )
+    );
+    setForm((current) => (current ? { ...current, passport, modelProfile } : current));
     setIsEditing(false);
   };
 
-  if (loading) {
+  const handleSelectPet = (pet) => {
+    if (!loggedPetIds.includes(pet.id)) return;
+
+    setSelectedPetId(pet.id);
+    setForm({ ...pet });
+    setIsEditing(false);
+    setSearchParams({ pet: String(pet.id) });
+  };
+
+  const handleBackToCards = () => {
+    setSelectedPetId(null);
+    setForm(null);
+    setIsEditing(false);
+    setSearchParams({});
+  };
+
+  const handlePetPhotoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const photoUrl = URL.createObjectURL(file);
+    setForm((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        photoUrl,
+        modelProfile: getModelProfile(current, file.name),
+      };
+    });
+  };
+
+  if (ownedPetProfiles.length === 0) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-slate-400">Cargando pasaportes...</p>
+      <div className="rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+          <Icon name="passport" size={26} />
+        </div>
+        <h1 className="mt-4 text-2xl font-bold text-slate-800">Sin mascotas registradas</h1>
+        <p className="mt-2 text-slate-500">
+          Este perfil todavia no tiene mascotas asociadas al usuario logueado.
+        </p>
       </div>
     );
   }
-
-  if (!selectedPet) return null;
-
-  const breedInfo = breeds.find((b) => b.name === selectedPet.breed);
+  const visiblePet = isEditing && form ? form : selectedPet;
+  const breedInfo = visiblePet ? breeds.find((b) => b.name === visiblePet.breed) : null;
+  const passportInfo = visiblePet ? visiblePet.passport ?? createPassportInfo(visiblePet) : null;
 
   return (
     <div className="space-y-6">

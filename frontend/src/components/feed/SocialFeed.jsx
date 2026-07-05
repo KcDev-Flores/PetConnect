@@ -7,7 +7,12 @@ export default function SocialFeed({
   posts = [],
   activePet,
   composerValue = "",
+  composerImage = "",
+  composerLocation = "",
   onComposerChange,
+  onPhotoSelect,
+  onPhotoRemove,
+  onLocationChange,
   onPublish,
   onPhotoClick,
   onLocationClick,
@@ -28,7 +33,12 @@ export default function SocialFeed({
       <PostComposer
         activePet={activePet}
         value={composerValue}
+        imagePreview={composerImage}
+        locationValue={composerLocation}
         onChange={onComposerChange}
+        onPhotoSelect={onPhotoSelect}
+        onPhotoRemove={onPhotoRemove}
+        onLocationChange={onLocationChange}
         onSubmit={onPublish}
         onPhotoClick={onPhotoClick}
         onLocationClick={onLocationClick}

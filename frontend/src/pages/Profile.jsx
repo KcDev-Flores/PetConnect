@@ -1,5 +1,6 @@
-import { Link } from "react-router-dom";
-import { useProfile } from "../hooks/useProfile";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { currentUser, pets } from "../data/mockData";
 import Avatar from "../components/ui/Avatar";
 import PetCard from "../components/ui/PetCard";
 import Icon from "../components/icons/Icons";
@@ -26,7 +27,80 @@ const emptyPetForm = {
 };
 
 export default function Profile() {
-  const { currentUser, userPets } = useProfile();
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState({
+    name: currentUser.name,
+    email: currentUser.email,
+    location: currentUser.location,
+    phone: currentUser.phone,
+    photoUrl: "",
+  });
+  const [draft, setDraft] = useState(profile);
+  const [isEditing, setIsEditing] = useState(false);
+  const [ownedExtraPets, setOwnedExtraPets] = useState(() => loadOwnedPets());
+  const [showPetForm, setShowPetForm] = useState(false);
+  const [petDraft, setPetDraft] = useState(emptyPetForm);
+
+  const userPets = [
+    ...pets.filter((p) => currentUser.pets.includes(p.id)),
+    ...ownedExtraPets,
+  ];
+
+  const setField = (field) => (e) => {
+    setDraft((current) => ({ ...current, [field]: e.target.value }));
+  };
+
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const photoUrl = URL.createObjectURL(file);
+    setDraft((current) => ({ ...current, photoUrl }));
+  };
+
+  const handleEditToggle = () => {
+    if (isEditing) {
+      setProfile(draft);
+      setIsEditing(false);
+      return;
+    }
+
+    setDraft(profile);
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setDraft(profile);
+    setIsEditing(false);
+  };
+
+  const setPetField = (field) => (e) => {
+    setPetDraft((current) => ({ ...current, [field]: e.target.value }));
+  };
+
+  const handlePetPhotoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPetDraft((current) => ({ ...current, photoUrl: reader.result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddPet = (e) => {
+    e.preventDefault();
+
+    const nextPet = createOwnedPet(petDraft, profile.name);
+    const nextPets = [...ownedExtraPets, nextPet];
+    setOwnedExtraPets(nextPets);
+    saveOwnedPets(nextPets);
+    setPetDraft(emptyPetForm);
+    setShowPetForm(false);
+  };
+
+  const visibleProfile = isEditing ? draft : profile;
 
   return (
     <div className="space-y-6">
@@ -84,8 +158,8 @@ export default function Profile() {
                 type="button"
                 onClick={handleEditToggle}
                 className={`flex items-center gap-2 px-5 py-2.5 font-semibold rounded-xl text-sm transition-colors ${isEditing
-                    ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                    : "bg-white border border-slate-200 hover:border-emerald-300 text-slate-700"
+                  ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                  : "bg-white border border-slate-200 hover:border-emerald-300 text-slate-700"
                   }`}
               >
                 <Icon name={isEditing ? "check" : "edit"} size={16} />

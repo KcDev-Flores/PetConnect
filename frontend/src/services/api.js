@@ -156,7 +156,7 @@ export async function getPosts() {
 /**
  * Publica un nuevo post en el feed.
  * POST /webhook/create-post
- * Body: { petId, content, imageUrl? }
+ * Body: { petId, content, imageUrl?, location? }
  * Response: { status: "ok", postId: string }
  */
 export async function createPost(data) {
