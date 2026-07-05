@@ -1,16 +1,16 @@
 import { useState } from "react";
-import { posts, pets } from "../data/mockData";
+import { useFeed } from "../hooks/useFeed";
 import SocialFeed from "../components/feed/SocialFeed";
 import Stories from "../components/ui/Stories";
 import Icon from "../components/icons/Icons";
 
 export default function Feed() {
   const [newPost, setNewPost] = useState("");
-  const [feedPosts, setFeedPosts] = useState(posts);
-  const activePet = pets[0];
+  const { feedPosts, loading, activePet, publishPost } = useFeed();
 
-  const handlePublish = (e) => {
+  const handlePublish = async (e) => {
     e.preventDefault();
+<<<<<<< HEAD
     if (!newPost.trim()) return;
 
     setFeedPosts([
@@ -26,8 +26,19 @@ export default function Feed() {
       },
       ...feedPosts,
     ]);
+=======
+    await publishPost(newPost);
+>>>>>>> origin/Charlie
     setNewPost("");
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p className="text-slate-400">Cargando feed...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,640px)_320px] xl:justify-center">

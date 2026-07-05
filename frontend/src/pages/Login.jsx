@@ -1,16 +1,24 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Icon, { Logo } from "../components/icons/Icons";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { loginUser, registerUser, loading, error } = useAuth();
+  
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isRegister, setIsRegister] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    navigate("/");
+    if (isRegister) {
+      await registerUser(name, email, password);
+    } else {
+      await loginUser(email, password);
+    }
   };
 
   return (
@@ -42,6 +50,8 @@ export default function Login() {
                   </span>
                   <input
                     type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     placeholder="Tu nombre"
                     className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-300 focus:border-emerald-300 outline-none"
                   />
@@ -81,11 +91,16 @@ export default function Login() {
               </div>
             </div>
 
+            {error && (
+              <p className="text-red-500 text-sm font-semibold">{error}</p>
+            )}
+
             <button
               type="submit"
-              className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors"
+              disabled={loading}
+              className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold rounded-xl transition-colors"
             >
-              {isRegister ? "Registrarse" : "Iniciar sesión"}
+              {loading ? "Cargando..." : (isRegister ? "Registrarse" : "Iniciar sesión")}
             </button>
           </form>
 
