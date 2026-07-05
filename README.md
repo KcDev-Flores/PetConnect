@@ -38,3 +38,6 @@ Conectamos Supabase a **DataMCP** (vía el connection pooler de PostgreSQL), exp
 
 ### 🐙 GitHub — Colaboración y control de versiones
 Todo el trabajo vive en el repositorio del equipo. Cada aporte de P5 se entregó como Pull Request hacia la rama principal de desarrollo, con descripciones detalladas y revisión automática de código (**Devin Review**) en cada PR, permitiendo que el resto del equipo integrara los cambios con un simple merge + pull.
+
+### 🎙️ Wispr Flow — Dictado por voz con IA
+Usamos Wispr Flow como herramienta de productividad durante el desarrollo: dictado por voz con IA que convierte lo hablado en texto limpio y bien formateado en cualquier aplicación. Nos permitió redactar instrucciones, prompts y comunicación del equipo mucho más rápido que escribiendo, agilizando la coordinación entre los organizadores y las iteraciones con el agente de IA.
