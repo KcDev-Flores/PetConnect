@@ -23,6 +23,12 @@ export default function Navbar() {
     }, 80);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("petconnect:auth-token");
+    localStorage.removeItem("petconnect:user");
+    navigate("/login");
+  };
+
   return (
     <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-sm">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -52,20 +58,20 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
+
+          <Link
+            to="/login?mode=register"
+            className="hidden text-xs font-semibold text-slate-500 transition-colors hover:text-emerald-700 sm:block"
+          >
+            No tienes cuenta? <span className="font-black text-emerald-600">Registrate aqui</span>
+          </Link>
           <button
             type="button"
-            onClick={handleCreatePost}
-            className="hidden items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 sm:flex"
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-colors"
           >
-            <Icon name="plus" size={17} />
-            Crear
+            Cerrar sesion
           </button>
-          <Link
-            to="/login"
-            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-xl transition-colors"
-          >
-            Entrar
-          </Link>
         </div>
       </div>
 
