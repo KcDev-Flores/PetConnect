@@ -122,7 +122,9 @@ CREATE TABLE IF NOT EXISTS lost_pets (
   breed           TEXT,
   species         TEXT CHECK (species IN ('Perro', 'Gato', 'Otro')) DEFAULT 'Perro',
   description     TEXT,
-  last_seen       TEXT,                     -- free-text location
+  last_seen       TEXT,                     -- free-text location label
+  last_seen_lat   DECIMAL(9,6),             -- optional: shared GPS latitude
+  last_seen_lng   DECIMAL(9,6),             -- optional: shared GPS longitude
   last_seen_date  DATE DEFAULT CURRENT_DATE,
   reward          TEXT,                     -- e.g. "$50", NULL if none
   status          TEXT CHECK (status IN ('activo', 'encontrado', 'cerrado')) DEFAULT 'activo',

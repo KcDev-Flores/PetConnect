@@ -25,9 +25,10 @@ Both files are safe to re-run (`IF NOT EXISTS` / `ON CONFLICT DO NOTHING`).
 - `vaccines` — vaccines the pet received (name, date, next dose, vet, notes).
 - `vet_records` — vet visits: clinic, vet, `condition` (enfermedad/diagnóstico), notes.
 - `posts` — social feed.
-- `lost_pets` — emergency reports.
-- `sightings` — sightings for a lost pet (`lat`/`lng` feed the map).
-- `breeds` — reference catalog.
+- `comments` — comments on feed posts (`post_id` → posts, `author_id` → users).
+- `lost_pets` — emergency reports (`pet_id` links to a registered pet). `last_seen` is the text
+  label; `last_seen_lat`/`last_seen_lng` are the optional shared GPS coords (NULL if the owner
+  doesn't share location) used to draw the map pin.
 
 ## Naming convention
 
