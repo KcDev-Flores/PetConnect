@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getLostPets, reportLostPet } from "../services/api";
+import { getLostPets, reportLostPet, resolveLostPet } from "../services/api";
 import { estimateLocation } from "../data/mockData";
 
 export function useLostPets() {
@@ -18,5 +18,9 @@ export function useLostPets() {
     await reportLostPet(data);
   };
 
-  return { reports, loading, error, submitReport, estimateLocation };
+  const resolveReport = async (petId) => {
+    await resolveLostPet(petId);
+  };
+
+  return { reports, loading, error, submitReport, resolveReport, estimateLocation };
 }

@@ -63,7 +63,8 @@ export async function reportLostPet(data) {
   
   // EL TRUCO MÁS RÁPIDO: Traducir los nombres justo antes de enviarlos
   // Si la mascota es local, n8n/Supabase fallará porque espera un UUID. Usamos un UUID válido de la base de datos.
-  const validPetId = (data.petId && !String(data.petId).startsWith("local-")) 
+  const isUUID = (id) => typeof id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const validPetId = (data.petId && isUUID(String(data.petId))) 
     ? data.petId 
     : "aaaaaaaa-0000-0000-0000-000000000001";
 
@@ -73,11 +74,14 @@ export async function reportLostPet(data) {
     lost_pets: validPetId,
     description: data.description,
     lastSeen: data.lastSeen,
+    lastSeenDate: data.lastSeenDate,
     reward: data.reward,
     ownerPhone: data.ownerPhone,
     photoUrl: data.photoUrl,
     breed: data.breed,
-    species: data.species
+    species: data.species,
+    passportCode: data.passportCode,
+    microchip: data.microchip
   };
 
   const res = await fetch(`${BASE_URL}/report-lost-pet`, {
@@ -90,6 +94,31 @@ export async function reportLostPet(data) {
   return text ? JSON.parse(text) : { status: "ok" };
 }
 
+/**
+ * Resuelve una alerta de mascota perdida.
+ * POST /webhook/resolve-lost-pet
+ * Body: { petId }
+ */
+export async function resolveLostPet(petId) {
+  if (USE_MOCK) {
+    console.log("[MOCK] resolveLostPet:", petId);
+    return { status: "ok" };
+  }
+
+  const isUUID = (id) => typeof id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const validPetId = (petId && isUUID(String(petId))) 
+    ? petId 
+    : "aaaaaaaa-0000-0000-0000-000000000001";
+
+  const res = await fetch(`${BASE_URL}/resolve-lost-pet`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ petId: validPetId }),
+  });
+  if (!res.ok) throw new Error("Error al resolver alerta");
+  const text = await res.text();
+  return text ? JSON.parse(text) : { status: "ok" };
+}
 
 // ──────────────────────────────────────────
 // MASCOTAS REGISTRADAS (PASAPORTE)
@@ -112,12 +141,14 @@ export async function getUserPets(userId) {
   const rawData = data.items || data.data || data;
   
   // Si el backend no devuelve un array y tampoco es un objeto de mascota válido, es una respuesta vacía
-  if (!Array.isArray(rawData) && !rawData.id && !rawData.pet_id && !rawData.name && !rawData.pet_name) {
+  if (!Array.isArray(rawData) && !rawData?.id && !rawData?.pet_id && !rawData?.name && !rawData?.pet_name) {
     return [];
   }
 
+  const dataArray = Array.isArray(rawData) ? rawData : [rawData];
+
   // Filtramos cualquier fila que venga vacía (ej. de un LEFT JOIN en SQL sin coincidencias)
-  const validPets = arrayData.filter(pet => pet && (pet.id || pet.pet_id || pet.name || pet.pet_name));
+  const validPets = dataArray.filter(pet => pet && (pet.id || pet.pet_id || pet.name || pet.pet_name));
   
   return validPets.map(pet => ({
     ...pet,
@@ -172,6 +203,7 @@ export async function getPosts() {
   
   // 1. n8n a veces no devuelve un array si P3 olvida darle a "Return All",
   // o lo envuelve en "data". Lo forzamos a ser un Array.
+  if (!rawData) return [];
   const dataArray = Array.isArray(rawData) 
     ? rawData 
     : (rawData.data || rawData.items || [rawData]);
@@ -204,7 +236,8 @@ export async function createPost(data) {
   }
   
   // Si la mascota es local, forzamos un UUID válido
-  const validPetId = (data.petId && !String(data.petId).startsWith("local-")) 
+  const isUUID = (id) => typeof id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const validPetId = (data.petId && isUUID(String(data.petId))) 
     ? data.petId 
     : "aaaaaaaa-0000-0000-0000-000000000001";
 

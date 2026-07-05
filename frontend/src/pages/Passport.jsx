@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { breeds } from "../data/mockData";
 import { useAuthStore } from "../store/authStore";
 import { usePets } from "../hooks/usePets";
+import { useLostPets } from "../hooks/useLostPets";
 import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
 import Icon from "../components/icons/Icons";
@@ -476,6 +477,7 @@ export default function Passport() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuthStore();
   const { pets: apiPets } = usePets();
+  const { submitReport } = useLostPets();
   
   const [localOwnedPets, setLocalOwnedPets] = useState(() => loadOwnedPets());
   const [deletedPetIds] = useState(() => loadDeletedOwnedPetIds());
@@ -588,6 +590,25 @@ export default function Passport() {
       saveLocalEmergencyAlerts(nextAlerts);
     } catch {
       saveLocalEmergencyAlerts([{ ...alert, photoUrl: "" }]);
+    }
+
+    try {
+      await submitReport({
+        petId: alert.petId,
+        photoUrl: alert.photoUrl,
+        petName: alert.petName,
+        breed: alert.breed,
+        species: alert.species,
+        description: alert.notes,
+        lastSeen: alert.lostLocation,
+        lastSeenDate: alert.lostDate,
+        ownerPhone: alert.contactPhone,
+        reward: alert.reward || null,
+        passportCode: alert.passport.code,
+        microchip: alert.passport.microchip,
+      });
+    } catch (err) {
+      console.error("Failed to submit report via API", err);
     }
     setLostDraft({
       lostLocation: "",

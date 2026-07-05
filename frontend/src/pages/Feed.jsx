@@ -79,7 +79,7 @@ export default function Feed() {
     .slice(0, 6)
     .map((pet) => ({
       ...pet,
-      followers: pet.followers,
+      followers: pet.followers || 0,
     }));
 
   useEffect(() => {

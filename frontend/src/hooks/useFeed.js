@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getPosts, createPost } from "../services/api";
 import { useAuthStore } from "../store/authStore";
+import { usePets } from "./usePets";
+import { loadDeletedOwnedPetIds, loadOwnedPets } from "../data/localPets";
 
 const LOCAL_FEED_KEY = "petconnect_feed_posts";
 const LOCAL_FEED_INTERACTIONS_KEY = "petconnect_feed_interactions";
@@ -68,7 +70,17 @@ export function useFeed() {
   // En lugar de usar localStorage para los pets, deberíamos idealmente usar usePets()
   // pero para no romper la lógica existente del feed local, dejaremos que activePet
   // sea manejado dinámicamente si le pasan las mascotas.
-  const [ownedPets, setOwnedPets] = useState([]);
+  const { pets: apiPets } = usePets();
+  const [localOwnedPets] = useState(() => loadOwnedPets());
+  const [deletedPetIds] = useState(() => loadDeletedOwnedPetIds());
+  
+  const ownedPets = useMemo(
+    () => [
+      ...apiPets.filter((pet) => !deletedPetIds.some((id) => String(id) === String(pet.id))),
+      ...localOwnedPets,
+    ],
+    [apiPets, deletedPetIds, localOwnedPets]
+  );
   const [selectedPetId, setSelectedPetId] = useState(null);
   const [feedPosts, setFeedPosts] = useState([]);
   const [loading, setLoading] = useState(true);

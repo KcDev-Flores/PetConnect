@@ -350,7 +350,7 @@ function SelectedAlertDetail({ alert, canResolve, onMarkFound, onBack }) {
 export default function Emergency() {
   const { user } = useAuthStore();
   const { pets: apiPets } = usePets();
-  const { reports, loading, submitReport } = useLostPets();
+  const { reports, loading, submitReport, resolveReport } = useLostPets();
   const [localOwnedPets] = useState(() => loadOwnedPets());
   const [deletedPetIds] = useState(() => loadDeletedOwnedPetIds());
   
@@ -378,13 +378,19 @@ export default function Emergency() {
     [apiPets, deletedPetIds, localOwnedPets]
   );
   const normalizedReports = useMemo(() => reports.map(normalizeReport), [reports]);
-  const alertPosts = useMemo(
-    () => [...localAlerts, ...normalizedReports].map((alert) => hydrateAlertPhoto(alert, sourcePets)),
-    [localAlerts, normalizedReports, sourcePets]
-  );
+  const alertPosts = useMemo(() => {
+    const combined = [...localAlerts, ...normalizedReports].map((alert) => hydrateAlertPhoto(alert, sourcePets));
+    const seenKeys = new Set();
+    return combined.filter(alert => {
+      const key = alert.petId ? `pet-${alert.petId}` : `alert-${alert.id}`;
+      if (seenKeys.has(key)) return false;
+      seenKeys.add(key);
+      return true;
+    });
+  }, [localAlerts, normalizedReports, sourcePets]);
   const selectedAlert = alertPosts.find((alert) => alert.id === selectedAlertId) ?? null;
   const selectedAlertCanResolve = selectedAlert
-    ? localAlerts.some((alert) => String(alert.id) === String(selectedAlert.id))
+    ? ownedPets.some((pet) => String(pet.id) === String(selectedAlert.petId))
     : false;
   const selectedPet = ownedPets.find((pet) => String(pet.id) === String(draft.petId)) ?? ownedPets[0] ?? null;
   const selectedPetPassport = selectedPet ? createPassportInfo(selectedPet) : null;
@@ -430,13 +436,22 @@ export default function Emergency() {
     });
   };
 
-  const handleMarkFound = (alertId) => {
-    const nextAlerts = localAlerts.filter((alert) => String(alert.id) !== String(alertId));
+  const handleMarkFound = async (alertId) => {
+    const alertToResolve = alertPosts.find(a => String(a.id) === String(alertId));
 
+    const nextAlerts = localAlerts.filter((alert) => String(alert.id) !== String(alertId));
     setLocalAlerts(nextAlerts);
     saveLocalAlerts(nextAlerts);
     setSelectedAlertId((currentId) => (String(currentId) === String(alertId) ? null : currentId));
     window.dispatchEvent(new Event("petconnect:lost-alerts-updated"));
+
+    if (alertToResolve) {
+      try {
+        await resolveReport(alertToResolve.petId);
+      } catch (err) {
+        console.error("Failed to resolve via API", err);
+      }
+    }
   };
 
   if (loading) {
@@ -612,7 +627,7 @@ export default function Emergency() {
                 alert={alert}
                 isSelected={false}
                 onClick={() => setSelectedAlertId(alert.id)}
-                canResolve={localAlerts.some((localAlert) => String(localAlert.id) === String(alert.id))}
+                canResolve={ownedPets.some((pet) => String(pet.id) === String(alert.petId))}
                 onMarkFound={handleMarkFound}
               />
             ))}
