@@ -146,10 +146,9 @@ function PetProfileModal({ pet, isFollowing, onClose, onToggleFollow }) {
 
 function PetExploreCard({ pet, isFollowing, onOpen, onToggleFollow }) {
   return (
-    <button
-      type="button"
+    <article
       onClick={() => onOpen(pet)}
-      className="group overflow-hidden rounded-2xl border border-slate-100 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+      className="group overflow-hidden rounded-2xl border border-slate-100 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md cursor-pointer"
     >
       <div className="relative aspect-square bg-gradient-to-br from-emerald-200 via-sky-200 to-slate-700">
         {pet.photoUrl ? (
@@ -191,7 +190,7 @@ function PetExploreCard({ pet, isFollowing, onOpen, onToggleFollow }) {
           {isFollowing ? "Siguiendo" : "Seguir"}
         </button>
       </div>
-    </button>
+    </article>
   );
 }
 
