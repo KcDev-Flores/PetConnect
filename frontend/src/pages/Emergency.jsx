@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { currentUser, pets } from "../data/mockData";
-import { loadOwnedPets } from "../data/localPets";
+import { loadDeletedOwnedPetIds, loadOwnedPets } from "../data/localPets";
 import { useLostPets } from "../hooks/useLostPets";
 import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
@@ -132,9 +132,13 @@ function createAlertFromDraft(draft, selectedPet, photoUrl) {
   };
 }
 
-function EmergencyAlertCard({ alert, isSelected, onClick }) {
+function EmergencyAlertCard({ alert, isSelected, onClick, canResolve, onMarkFound }) {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(alert.lostLocation)}`;
   const whatsappUrl = createWhatsAppLink(alert.contactPhone, alert.petName, alert.lostLocation);
+  const handleMarkFound = (e) => {
+    e.stopPropagation();
+    onMarkFound(alert.id);
+  };
 
   return (
     <article
@@ -179,12 +183,12 @@ function EmergencyAlertCard({ alert, isSelected, onClick }) {
         </div>
       </button>
 
-      <div className="flex gap-2 border-t border-slate-100 p-4">
+      <div className="flex flex-wrap gap-2 border-t border-slate-100 p-4">
         <a
           href={mapsUrl}
           target="_blank"
           rel="noreferrer"
-          className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-red-600"
+          className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-red-600"
         >
           <Icon name="map" size={15} />
           Ver ubicacion
@@ -194,18 +198,28 @@ function EmergencyAlertCard({ alert, isSelected, onClick }) {
             href={whatsappUrl}
             target="_blank"
             rel="noreferrer"
-            className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 transition-colors hover:bg-emerald-100"
+            className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 transition-colors hover:bg-emerald-100"
           >
             <Icon name="phone" size={15} />
             WhatsApp
           </a>
+        )}
+        {canResolve && (
+          <button
+            type="button"
+            onClick={handleMarkFound}
+            className="flex min-w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-3 py-2.5 text-xs font-black text-white transition-colors hover:bg-emerald-600 sm:min-w-0 sm:flex-1"
+          >
+            <Icon name="check" size={15} />
+            Encontrado
+          </button>
         )}
       </div>
     </article>
   );
 }
 
-function SelectedAlertDetail({ alert }) {
+function SelectedAlertDetail({ alert, canResolve, onMarkFound }) {
   if (!alert) return null;
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(alert.lostLocation)}`;
   const whatsappUrl = createWhatsAppLink(alert.contactPhone, alert.petName, alert.lostLocation);
@@ -248,6 +262,16 @@ function SelectedAlertDetail({ alert }) {
                 <Icon name="phone" size={15} />
                 WhatsApp
               </a>
+            )}
+            {canResolve && (
+              <button
+                type="button"
+                onClick={() => onMarkFound(alert.id)}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-3 py-2.5 text-xs font-black text-white transition-colors hover:bg-emerald-600"
+              >
+                <Icon name="check" size={15} />
+                Marcar como encontrado
+              </button>
             )}
           </div>
         </aside>
@@ -329,9 +353,15 @@ function SelectedAlertDetail({ alert }) {
 export default function Emergency() {
   const { reports, loading, submitReport } = useLostPets();
   const [localOwnedPets] = useState(() => loadOwnedPets());
+  const [deletedPetIds] = useState(() => loadDeletedOwnedPetIds());
   const ownedPets = useMemo(
-    () => [...pets.filter((pet) => currentUser.pets.includes(pet.id)), ...localOwnedPets],
-    [localOwnedPets]
+    () => [
+      ...pets.filter((pet) =>
+        currentUser.pets.includes(pet.id) && !deletedPetIds.some((id) => String(id) === String(pet.id))
+      ),
+      ...localOwnedPets,
+    ],
+    [deletedPetIds, localOwnedPets]
   );
   const [localAlerts, setLocalAlerts] = useState(() => readLocalAlerts());
   const [selectedAlertId, setSelectedAlertId] = useState(null);
@@ -345,13 +375,19 @@ export default function Emergency() {
     notes: "",
   });
 
-  const sourcePets = useMemo(() => [...pets, ...localOwnedPets], [localOwnedPets]);
+  const sourcePets = useMemo(
+    () => [...pets.filter((pet) => !deletedPetIds.some((id) => String(id) === String(pet.id))), ...localOwnedPets],
+    [deletedPetIds, localOwnedPets]
+  );
   const normalizedReports = useMemo(() => reports.map(normalizeReport), [reports]);
   const alertPosts = useMemo(
     () => [...localAlerts, ...normalizedReports].map((alert) => hydrateAlertPhoto(alert, sourcePets)),
     [localAlerts, normalizedReports, sourcePets]
   );
   const selectedAlert = alertPosts.find((alert) => alert.id === selectedAlertId) ?? alertPosts[0] ?? null;
+  const selectedAlertCanResolve = selectedAlert
+    ? localAlerts.some((alert) => String(alert.id) === String(selectedAlert.id))
+    : false;
   const selectedPet = ownedPets.find((pet) => String(pet.id) === String(draft.petId)) ?? ownedPets[0] ?? null;
   const selectedPetPassport = selectedPet ? createPassportInfo(selectedPet) : null;
 
@@ -392,6 +428,16 @@ export default function Emergency() {
       passportCode: alert.passport.code,
       microchip: alert.passport.microchip,
     });
+  };
+
+  const handleMarkFound = (alertId) => {
+    const nextAlerts = localAlerts.filter((alert) => String(alert.id) !== String(alertId));
+    const nextSelectedId = nextAlerts[0]?.id ?? normalizedReports[0]?.id ?? null;
+
+    setLocalAlerts(nextAlerts);
+    saveLocalAlerts(nextAlerts);
+    setSelectedAlertId((currentId) => (String(currentId) === String(alertId) ? nextSelectedId : currentId));
+    window.dispatchEvent(new Event("petconnect:lost-alerts-updated"));
   };
 
   if (loading) {
@@ -567,12 +613,14 @@ export default function Emergency() {
                 alert={alert}
                 isSelected={selectedAlert?.id === alert.id}
                 onClick={() => setSelectedAlertId(alert.id)}
+                canResolve={localAlerts.some((localAlert) => String(localAlert.id) === String(alert.id))}
+                onMarkFound={handleMarkFound}
               />
             ))}
           </div>
         </section>
 
-        <SelectedAlertDetail alert={selectedAlert} />
+        <SelectedAlertDetail alert={selectedAlert} canResolve={selectedAlertCanResolve} onMarkFound={handleMarkFound} />
       </div>
     </div>
   );

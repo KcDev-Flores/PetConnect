@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import Icon, { Logo } from "../icons/Icons";
 
@@ -12,8 +13,11 @@ const links = [
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleCreatePost = () => {
+    setIsMobileMenuOpen(false);
+
     if (location.pathname !== "/") {
       navigate("/");
     }
@@ -24,6 +28,7 @@ export default function Navbar() {
   };
 
   const handleLogout = () => {
+    setIsMobileMenuOpen(false);
     localStorage.removeItem("petconnect:auth-token");
     localStorage.removeItem("petconnect:user");
     navigate("/login");
@@ -57,8 +62,7 @@ export default function Navbar() {
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
-
+        <div className="hidden items-center gap-2 md:flex">
           <Link
             to="/login?mode=register"
             className="hidden text-xs font-semibold text-slate-500 transition-colors hover:text-emerald-700 sm:block"
@@ -73,33 +77,93 @@ export default function Navbar() {
             Cerrar sesion
           </button>
         </div>
-      </div>
 
-      <div className="md:hidden flex justify-around py-2 border-t border-slate-100 bg-white">
-        {links.map(({ to, label, icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 px-3 py-1 text-xs font-medium ${
-                isActive ? "text-emerald-600" : "text-slate-500"
-              }`
-            }
-          >
-            <Icon name={icon} size={22} />
-            {label}
-          </NavLink>
-        ))}
         <button
           type="button"
-          onClick={handleCreatePost}
-          className="flex flex-col items-center gap-0.5 px-3 py-1 text-xs font-medium text-slate-900"
+          onClick={() => setIsMobileMenuOpen((current) => !current)}
+          className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-100 bg-emerald-50 text-emerald-700 shadow-sm transition-all hover:bg-emerald-100 md:hidden"
+          aria-label={isMobileMenuOpen ? "Cerrar menu" : "Abrir menu"}
+          aria-expanded={isMobileMenuOpen}
         >
-          <Icon name="plus" size={22} />
-          Crear
+          <Icon name={isMobileMenuOpen ? "close" : "menu"} size={23} />
         </button>
       </div>
+
+      {isMobileMenuOpen && (
+        <div className="md:hidden">
+          <button
+            type="button"
+            aria-label="Cerrar menu"
+            className="fixed inset-0 top-16 z-40 bg-slate-950/35 backdrop-blur-[2px]"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+
+          <div className="absolute left-3 right-3 top-[4.5rem] z-50 overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-2xl shadow-slate-900/20">
+            <div className="bg-[radial-gradient(circle_at_20%_10%,rgba(16,185,129,0.18),transparent_34%),linear-gradient(135deg,#ffffff,#f0fdf4)] p-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white shadow-sm">
+                  <Logo size={30} />
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">Menu</p>
+                  <h2 className="text-lg font-black text-slate-950">PetConnect</h2>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCreatePost}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-sm transition-colors hover:bg-emerald-700"
+              >
+                <Icon name="plus" size={18} />
+                Crear publicacion
+              </button>
+            </div>
+
+            <div className="grid gap-2 p-3">
+              {links.map(({ to, label, icon, end }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-black transition-all ${
+                      isActive
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                    }`
+                  }
+                >
+                  <span className="flex items-center gap-3">
+                    <Icon name={icon} size={20} />
+                    {label}
+                  </span>
+                  <Icon name="more" size={18} className="opacity-45" />
+                </NavLink>
+              ))}
+            </div>
+
+            <div className="border-t border-slate-100 bg-slate-50 p-4">
+              <Link
+                to="/login?mode=register"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block text-center text-xs font-semibold text-slate-500 transition-colors hover:text-emerald-700"
+              >
+                No tienes cuenta? <span className="font-black text-emerald-600">Registrate aqui</span>
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-red-500 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-red-600"
+              >
+                <Icon name="user" size={18} />
+                Cerrar sesion
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

@@ -1,14 +1,23 @@
 import { useState, useMemo } from "react";
-import { breeds, pets } from "../data/mockData";
-import { loadOwnedPets } from "../data/localPets";
+import { breeds, currentUser, pets } from "../data/mockData";
+import { loadDeletedOwnedPetIds, loadOwnedPets } from "../data/localPets";
 
 export function useSearch() {
   const [query, setQuery] = useState("");
   const [species, setSpecies] = useState("Todos");
   const [size, setSize] = useState("Todos");
   const [localPets] = useState(() => loadOwnedPets());
+  const [deletedPetIds] = useState(() => loadDeletedOwnedPetIds());
 
-  const allPets = useMemo(() => [...pets, ...localPets], [localPets]);
+  const allPets = useMemo(
+    () => [
+      ...pets.filter((pet) =>
+        !currentUser.pets.includes(pet.id) || !deletedPetIds.some((id) => String(id) === String(pet.id))
+      ),
+      ...localPets,
+    ],
+    [deletedPetIds, localPets]
+  );
   const speciesOptions = ["Todos", ...new Set(breeds.map((b) => b.species))];
   const sizeOptions = ["Todos", ...new Set(breeds.map((b) => b.size))];
   const normalizedQuery = query.trim().toLowerCase();
