@@ -221,6 +221,11 @@ const icons = {
       <path d="M14 14h2v2h-2zM18 14h2M14 18h6M12 4v3M12 10v2M4 12h4M10 20v-4" />
     </Svg>
   ),
+  bookmark: (p) => (
+    <Svg {...p}>
+      <path d="M6 4h12v17l-6-3.5L6 21V4z" />
+    </Svg>
+  ),
 };
 
 export default function Icon({ name, size = 20, className = "" }) {
