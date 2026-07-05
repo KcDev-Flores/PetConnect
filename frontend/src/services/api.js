@@ -8,9 +8,21 @@
 //   VITE_N8N_BASE_URL=https://tu-instancia.n8n.io/webhook
 // ============================================================
 
+import { useAuthStore } from "../store/authStore";
+
 const BASE_URL =
   import.meta.env.VITE_N8N_BASE_URL || "http://localhost:5678/webhook";
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false"; // true por defecto
+
+// Cabeceras comunes: incluye el JWT de Supabase Auth si hay sesión,
+// para que n8n pueda validar al usuario.
+function authHeaders() {
+  const token = useAuthStore.getState().getAccessToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 // ──────────────────────────────────────────
 // MASCOTAS PERDIDAS
@@ -26,7 +38,7 @@ export async function getLostPets() {
     const { lostReports } = await import("../data/mockData.js");
     return lostReports;
   }
-  const res = await fetch(`${BASE_URL}/get-lost-pets`);
+  const res = await fetch(`${BASE_URL}/get-lost-pets`, { headers: authHeaders() });
   if (!res.ok) throw new Error("Error al obtener reportes");
   const data = await res.json();
   const rawData = data.data || data.items || data;
@@ -61,28 +73,27 @@ export async function reportLostPet(data) {
     return { status: "ok", reportId: "mock-" + Date.now() };
   }
   
-  // EL TRUCO MÁS RÁPIDO: Traducir los nombres justo antes de enviarlos
-  // Si la mascota es local, n8n/Supabase fallará porque espera un UUID. Usamos un UUID válido de la base de datos.
-  const validPetId = (data.petId && !String(data.petId).startsWith("local-")) 
-    ? data.petId 
-    : "aaaaaaaa-0000-0000-0000-000000000001";
+  // Si la mascota es "local" (no registrada en la BD) mandamos petId null:
+  // la tabla lost_pets acepta pet_id NULL + pet_name/breed/species libres.
+  const validPetId = (data.petId && !String(data.petId).startsWith("local-"))
+    ? data.petId
+    : null;
 
   const payloadParaN8n = {
     petId: validPetId,
-    pet_name: data.petName || "Desconocido",
-    lost_pets: validPetId,
+    petName: data.petName || "Desconocido",
     description: data.description,
     lastSeen: data.lastSeen,
     reward: data.reward,
     ownerPhone: data.ownerPhone,
     photoUrl: data.photoUrl,
     breed: data.breed,
-    species: data.species
+    species: data.species,
   };
 
   const res = await fetch(`${BASE_URL}/report-lost-pet`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify(payloadParaN8n),
   });
   if (!res.ok) throw new Error("Error al enviar reporte");
@@ -105,7 +116,7 @@ export async function getUserPets(userId) {
     const { pets } = await import("../data/mockData.js");
     return pets;
   }
-  const res = await fetch(`${BASE_URL}/get-user-pets?userId=${userId}`);
+  const res = await fetch(`${BASE_URL}/get-user-pets?userId=${userId}`, { headers: authHeaders() });
   if (!res.ok) throw new Error("Error al obtener mascotas");
   const data = await res.json();
   // n8n a veces devuelve { "items": [...] }, lo desenvolvemos
@@ -117,7 +128,8 @@ export async function getUserPets(userId) {
   }
 
   // Filtramos cualquier fila que venga vacía (ej. de un LEFT JOIN en SQL sin coincidencias)
-  const validPets = arrayData.filter(pet => pet && (pet.id || pet.pet_id || pet.name || pet.pet_name));
+  const dataArray = Array.isArray(rawData) ? rawData : [rawData];
+  const validPets = dataArray.filter(pet => pet && (pet.id || pet.pet_id || pet.name || pet.pet_name));
   
   return validPets.map(pet => ({
     ...pet,
@@ -143,7 +155,7 @@ export async function savePet(data) {
   }
   const res = await fetch(`${BASE_URL}/save-pet`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Error al guardar mascota");
@@ -165,7 +177,7 @@ export async function getPosts() {
     const { posts } = await import("../data/mockData.js");
     return posts;
   }
-  const res = await fetch(`${BASE_URL}/get-posts`);
+  const res = await fetch(`${BASE_URL}/get-posts`, { headers: authHeaders() });
   if (!res.ok) throw new Error("Error al obtener posts");
   
   const rawData = await res.json();
@@ -203,72 +215,19 @@ export async function createPost(data) {
     return { status: "ok", postId: "mock-post-" + Date.now() };
   }
   
-  // Si la mascota es local, forzamos un UUID válido
-  const validPetId = (data.petId && !String(data.petId).startsWith("local-")) 
-    ? data.petId 
-    : "aaaaaaaa-0000-0000-0000-000000000001";
-
-  const payloadParaN8n = {
-    ...data,
-    petId: validPetId
-  };
+  // posts.pet_id sí es obligatorio en la BD: si la mascota es "local"
+  // (no registrada) no se puede publicar contra n8n.
+  if (!data.petId || String(data.petId).startsWith("local-")) {
+    throw new Error("Registra tu mascota antes de publicar");
+  }
 
   const res = await fetch(`${BASE_URL}/create-post`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payloadParaN8n),
+    headers: authHeaders(),
+    body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Error al publicar");
   const text = await res.text();
   return text ? JSON.parse(text) : { status: "ok" };
-}
-
-
-// ──────────────────────────────────────────
-// AUTENTICACIÓN
-// ──────────────────────────────────────────
-
-/**
- * Inicia sesión con email y contraseña.
- * POST /webhook/login
- * Body: { email, password }
- * Response: { status: "ok", user: User, token: string }
- */
-export async function login(email, password) {
-  if (USE_MOCK) {
-    const { currentUser } = await import("../data/mockData.js");
-    return { status: "ok", user: currentUser, token: "mock-token-123" };
-  }
-  const res = await fetch(`${BASE_URL}/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  if (!res.ok) throw new Error("Credenciales incorrectas");
-  return res.json();
-}
-
-/**
- * Registra un nuevo usuario.
- * POST /webhook/register
- * Body: { name, email, password }
- * Response: { status: "ok", user: User, token: string }
- */
-export async function register(name, email, password) {
-  if (USE_MOCK) {
-    console.log("[MOCK] register:", { name, email });
-    return {
-      status: "ok",
-      user: { id: "mock-user-1", name, email },
-      token: "mock-token-456",
-    };
-  }
-  const res = await fetch(`${BASE_URL}/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password }),
-  });
-  if (!res.ok) throw new Error("Error al registrar usuario");
-  return res.json();
 }
 

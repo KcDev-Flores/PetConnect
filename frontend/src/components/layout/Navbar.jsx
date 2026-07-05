@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import Icon, { Logo } from "../icons/Icons";
-import { useAuth } from "../../hooks/useAuth";
 import { useAuthStore } from "../../store/authStore";
 
 const links = [

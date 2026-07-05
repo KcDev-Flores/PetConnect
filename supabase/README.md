@@ -23,6 +23,10 @@ Both files are safe to re-run (`IF NOT EXISTS` / `ON CONFLICT DO NOTHING`).
 - `users` — registered owners (`password_hash` never sent to the frontend).
 - `pets` — pet profile: name, breed, species, age, sex, color, weight, bio, photo.
 - `posts` — social feed.
+- `comments` — comments on feed posts (`post_id` → posts, `author_id` → users).
+- `vaccines` — vaccines the pet received (name, date, next dose, vet, notes).
+- `vet_records` — vet visits: clinic, vet, `condition`, notes.
+- `sightings` — sightings of lost pets (`lost_pet_id` → lost_pets, location, reporter).
 - `lost_pets` — emergency reports. `pet_id` is optional (strays can be reported without a
   registered pet); `pet_name`/`breed`/`species` are entered free-form. `last_seen` is the text
   label; `last_seen_lat`/`last_seen_lng` are the optional shared GPS coords (NULL if the owner

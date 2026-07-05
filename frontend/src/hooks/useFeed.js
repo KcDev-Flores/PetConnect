@@ -68,7 +68,7 @@ export function useFeed() {
   // En lugar de usar localStorage para los pets, deberíamos idealmente usar usePets()
   // pero para no romper la lógica existente del feed local, dejaremos que activePet
   // sea manejado dinámicamente si le pasan las mascotas.
-  const [ownedPets, setOwnedPets] = useState([]);
+  const [ownedPets] = useState([]);
   const [selectedPetId, setSelectedPetId] = useState(null);
   const [feedPosts, setFeedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
