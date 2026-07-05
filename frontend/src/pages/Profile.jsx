@@ -157,11 +157,10 @@ export default function Profile() {
               <button
                 type="button"
                 onClick={handleEditToggle}
-                className={`flex items-center gap-2 px-5 py-2.5 font-semibold rounded-xl text-sm transition-colors ${
-                  isEditing
+                className={`flex items-center gap-2 px-5 py-2.5 font-semibold rounded-xl text-sm transition-colors ${isEditing
                     ? "bg-emerald-500 hover:bg-emerald-600 text-white"
                     : "bg-white border border-slate-200 hover:border-emerald-300 text-slate-700"
-                }`}
+                  }`}
               >
                 <Icon name={isEditing ? "check" : "edit"} size={16} />
                 {isEditing ? "Guardar cambios" : "Editar perfil"}

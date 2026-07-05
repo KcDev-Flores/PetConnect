@@ -247,9 +247,8 @@ function AnimalPassportCard({ pet, isSelected, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`group overflow-hidden rounded-3xl border bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
-        isSelected ? "border-emerald-300 ring-2 ring-emerald-100" : "border-slate-100"
-      }`}
+      className={`group overflow-hidden rounded-3xl border bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${isSelected ? "border-emerald-300 ring-2 ring-emerald-100" : "border-slate-100"
+        }`}
     >
       <div className="relative h-28 bg-gradient-to-r from-emerald-300 via-sky-300 to-slate-700">
         {pet.photoUrl && (
@@ -447,227 +446,227 @@ export default function Passport() {
       )}
 
       {visiblePet && passportInfo ? (
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="relative h-48 overflow-hidden bg-gradient-to-r from-emerald-400 via-sky-400 to-slate-800">
-            {visiblePet.photoUrl && (
-              <img
-                src={visiblePet.photoUrl}
-                alt={visiblePet.name}
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-slate-900/10 to-transparent" />
-            <div className="absolute bottom-5 left-6 right-6 flex items-end justify-between gap-4">
-              <div className="flex items-end gap-4">
-                <div className="rounded-3xl bg-white p-2 shadow-xl">
-                  {visiblePet.photoUrl ? (
-                    <img
-                      src={visiblePet.photoUrl}
-                      alt={visiblePet.name}
-                      className="h-24 w-24 rounded-2xl object-cover"
-                    />
-                  ) : (
-                    <Avatar icon={selectedPet.icon} size="xl" color={selectedPet.color} />
-                  )}
-                </div>
-                <div className="pb-2 text-white">
-                  <h2 className="text-3xl font-black leading-tight">{visiblePet.name}</h2>
-                  <p className="text-sm font-semibold text-white/85">{visiblePet.breed}</p>
-                </div>
-              </div>
-              <Badge variant={passportInfo.status === "Verificado" ? "success" : "warning"}>
-                {passportInfo.status}
-              </Badge>
-            </div>
-          </div>
-
-          <div className="p-6">
-            <div>
-              {isEditing ? (
-                <div className="space-y-3">
-                  <FormField label="Foto de la mascota">
-                    <label className="flex cursor-pointer items-center gap-4 rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/50 p-4 transition-colors hover:bg-emerald-50">
-                      {form.photoUrl ? (
-                        <img
-                          src={form.photoUrl}
-                          alt={form.name}
-                          className="h-20 w-20 rounded-2xl object-cover shadow-sm"
-                        />
-                      ) : (
-                        <span className="grid h-20 w-20 place-items-center rounded-2xl bg-white text-emerald-600 shadow-sm">
-                          <Icon name="camera" size={30} />
-                        </span>
-                      )}
-                      <span>
-                        <span className="block text-sm font-bold text-slate-800">Subir foto y generar modelo</span>
-                        <span className="mt-1 block text-xs text-slate-500">
-                          La vista 3D se actualiza con una simulacion IA lista para conectar a Fal.
-                        </span>
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="sr-only"
-                        onChange={handlePetPhotoSelect}
-                      />
-                    </label>
-                  </FormField>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <FormField label="Nombre" required>
-                      <input
-                        value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        className={`${inputClass} font-bold`}
-                        required
-                      />
-                    </FormField>
-                    <FormField label="Raza" required>
-                      <select
-                        value={form.breed}
-                        onChange={(e) => setForm({ ...form, breed: e.target.value })}
-                        className={inputClass}
-                        required
-                      >
-                        {breeds.map((b) => (
-                          <option key={b.id} value={b.name}>{b.name}</option>
-                        ))}
-                      </select>
-                    </FormField>
-                  </div>
-
-                  <FormField label="Biografia" required>
-                    <textarea
-                      value={form.bio}
-                      onChange={(e) => setForm({ ...form, bio: e.target.value })}
-                      rows={3}
-                      className={textareaClass}
-                      required
-                    />
-                  </FormField>
-
-                  {form.modelProfile && (
-                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800">
-                      <div className="flex items-center gap-2 font-bold">
-                        <Icon name="spark" size={18} />
-                        Modelo IA preparado
-                      </div>
-                      <p className="mt-1">
-                        Perfil detectado: {form.modelProfile.species}. Confianza visual: {Math.round(form.modelProfile.confidence * 100)}%.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="info">{visiblePet.species}</Badge>
-                    <Badge>{visiblePet.age}</Badge>
-                    <Badge>{passportInfo.code}</Badge>
-                  </div>
-                  <p className="text-slate-600 mt-4 leading-relaxed">{visiblePet.bio}</p>
-                  <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-5">
-                    <h3 className="font-bold text-slate-800">Ficha completa del animal</h3>
-                    <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                      <div>
-                        <dt className="text-slate-400">Nombre</dt>
-                        <dd className="font-semibold text-slate-800">{visiblePet.name}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-slate-400">Especie</dt>
-                        <dd className="font-semibold text-slate-800">{visiblePet.species}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-slate-400">Raza</dt>
-                        <dd className="font-semibold text-slate-800">{visiblePet.breed}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-slate-400">Edad</dt>
-                        <dd className="font-semibold text-slate-800">{visiblePet.age}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-slate-400">Dueño</dt>
-                        <dd className="font-semibold text-slate-800">{visiblePet.owner}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-slate-400">Pasaporte</dt>
-                        <dd className="font-semibold text-slate-800">{passportInfo.code}</dd>
-                      </div>
-                    </dl>
-                  </div>
-                </>
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="relative h-48 overflow-hidden bg-gradient-to-r from-emerald-400 via-sky-400 to-slate-800">
+              {visiblePet.photoUrl && (
+                <img
+                  src={visiblePet.photoUrl}
+                  alt={visiblePet.name}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
               )}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-slate-900/10 to-transparent" />
+              <div className="absolute bottom-5 left-6 right-6 flex items-end justify-between gap-4">
+                <div className="flex items-end gap-4">
+                  <div className="rounded-3xl bg-white p-2 shadow-xl">
+                    {visiblePet.photoUrl ? (
+                      <img
+                        src={visiblePet.photoUrl}
+                        alt={visiblePet.name}
+                        className="h-24 w-24 rounded-2xl object-cover"
+                      />
+                    ) : (
+                      <Avatar icon={selectedPet.icon} size="xl" color={selectedPet.color} />
+                    )}
+                  </div>
+                  <div className="pb-2 text-white">
+                    <h2 className="text-3xl font-black leading-tight">{visiblePet.name}</h2>
+                    <p className="text-sm font-semibold text-white/85">{visiblePet.breed}</p>
+                  </div>
+                </div>
+                <Badge variant={passportInfo.status === "Verificado" ? "success" : "warning"}>
+                  {passportInfo.status}
+                </Badge>
+              </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-100">
-              <div className="rounded-2xl bg-slate-50 p-4 text-center">
-                <p className="text-2xl font-bold text-slate-800">{visiblePet.posts}</p>
-                <p className="text-xs text-slate-400">Publicaciones</p>
+            <div className="p-6">
+              <div>
+                {isEditing ? (
+                  <div className="space-y-3">
+                    <FormField label="Foto de la mascota">
+                      <label className="flex cursor-pointer items-center gap-4 rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/50 p-4 transition-colors hover:bg-emerald-50">
+                        {form.photoUrl ? (
+                          <img
+                            src={form.photoUrl}
+                            alt={form.name}
+                            className="h-20 w-20 rounded-2xl object-cover shadow-sm"
+                          />
+                        ) : (
+                          <span className="grid h-20 w-20 place-items-center rounded-2xl bg-white text-emerald-600 shadow-sm">
+                            <Icon name="camera" size={30} />
+                          </span>
+                        )}
+                        <span>
+                          <span className="block text-sm font-bold text-slate-800">Subir foto y generar modelo</span>
+                          <span className="mt-1 block text-xs text-slate-500">
+                            La vista 3D se actualiza con una simulacion IA lista para conectar a Fal.
+                          </span>
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="sr-only"
+                          onChange={handlePetPhotoSelect}
+                        />
+                      </label>
+                    </FormField>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <FormField label="Nombre" required>
+                        <input
+                          value={form.name}
+                          onChange={(e) => setForm({ ...form, name: e.target.value })}
+                          className={`${inputClass} font-bold`}
+                          required
+                        />
+                      </FormField>
+                      <FormField label="Raza" required>
+                        <select
+                          value={form.breed}
+                          onChange={(e) => setForm({ ...form, breed: e.target.value })}
+                          className={inputClass}
+                          required
+                        >
+                          {breeds.map((b) => (
+                            <option key={b.id} value={b.name}>{b.name}</option>
+                          ))}
+                        </select>
+                      </FormField>
+                    </div>
+
+                    <FormField label="Biografia" required>
+                      <textarea
+                        value={form.bio}
+                        onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                        rows={3}
+                        className={textareaClass}
+                        required
+                      />
+                    </FormField>
+
+                    {form.modelProfile && (
+                      <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800">
+                        <div className="flex items-center gap-2 font-bold">
+                          <Icon name="spark" size={18} />
+                          Modelo IA preparado
+                        </div>
+                        <p className="mt-1">
+                          Perfil detectado: {form.modelProfile.species}. Confianza visual: {Math.round(form.modelProfile.confidence * 100)}%.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex gap-2 mt-2">
+                      <Badge variant="info">{visiblePet.species}</Badge>
+                      <Badge>{visiblePet.age}</Badge>
+                      <Badge>{passportInfo.code}</Badge>
+                    </div>
+                    <p className="text-slate-600 mt-4 leading-relaxed">{visiblePet.bio}</p>
+                    <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                      <h3 className="font-bold text-slate-800">Ficha completa del animal</h3>
+                      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                        <div>
+                          <dt className="text-slate-400">Nombre</dt>
+                          <dd className="font-semibold text-slate-800">{visiblePet.name}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-400">Especie</dt>
+                          <dd className="font-semibold text-slate-800">{visiblePet.species}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-400">Raza</dt>
+                          <dd className="font-semibold text-slate-800">{visiblePet.breed}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-400">Edad</dt>
+                          <dd className="font-semibold text-slate-800">{visiblePet.age}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-400">Dueño</dt>
+                          <dd className="font-semibold text-slate-800">{visiblePet.owner}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-400">Pasaporte</dt>
+                          <dd className="font-semibold text-slate-800">{passportInfo.code}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="rounded-2xl bg-slate-50 p-4 text-center">
-                <p className="text-2xl font-bold text-slate-800">{visiblePet.followers}</p>
-                <p className="text-xs text-slate-400">Seguidores</p>
-              </div>
-              <div className="rounded-2xl bg-emerald-50 p-4 text-center flex flex-col items-center">
-                <Icon name="check" size={28} className="text-emerald-500" />
-                <p className="text-xs text-emerald-700 mt-1 font-semibold">Verificado</p>
+
+              <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-100">
+                <div className="rounded-2xl bg-slate-50 p-4 text-center">
+                  <p className="text-2xl font-bold text-slate-800">{visiblePet.posts}</p>
+                  <p className="text-xs text-slate-400">Publicaciones</p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4 text-center">
+                  <p className="text-2xl font-bold text-slate-800">{visiblePet.followers}</p>
+                  <p className="text-xs text-slate-400">Seguidores</p>
+                </div>
+                <div className="rounded-2xl bg-emerald-50 p-4 text-center flex flex-col items-center">
+                  <Icon name="check" size={28} className="text-emerald-500" />
+                  <p className="text-xs text-emerald-700 mt-1 font-semibold">Verificado</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="space-y-4">
-          <PetModelStage pet={visiblePet} />
+          <div className="space-y-4">
+            <PetModelStage pet={visiblePet} />
 
-          {breedInfo && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-              <h3 className="font-bold text-slate-800 mb-3">Info de la raza</h3>
-              <dl className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-slate-400">Especie</dt>
-                  <dd className="font-medium">{breedInfo.species}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-slate-400">Tamaño</dt>
-                  <dd className="font-medium">{breedInfo.size}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-slate-400">Origen</dt>
-                  <dd className="font-medium">{breedInfo.origin}</dd>
-                </div>
-              </dl>
-            </div>
-          )}
-
-          <Link
-            to="/profile"
-            className="group block bg-white rounded-2xl shadow-sm border border-slate-100 p-5 transition-all hover:border-emerald-200 hover:shadow-md"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
-                  <Icon name="user" size={22} />
-                </span>
-                <div>
-                  <h3 className="font-bold text-slate-800">Dueño</h3>
-                  <p className="text-sm text-slate-600">{visiblePet.owner}</p>
-                </div>
+            {breedInfo && (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                <h3 className="font-bold text-slate-800 mb-3">Info de la raza</h3>
+                <dl className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <dt className="text-slate-400">Especie</dt>
+                    <dd className="font-medium">{breedInfo.species}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-slate-400">Tamaño</dt>
+                    <dd className="font-medium">{breedInfo.size}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-slate-400">Origen</dt>
+                    <dd className="font-medium">{breedInfo.origin}</dd>
+                  </div>
+                </dl>
               </div>
-              <Icon name="user" size={18} className="text-slate-300 transition-colors group-hover:text-emerald-500" />
-            </div>
-            <p className="mt-3 text-xs font-semibold text-emerald-600">
-              Ver perfil del dueño
-            </p>
-          </Link>
+            )}
 
-          <DigitalPassportCard
-            passport={passportInfo}
-            isEditing={isEditing}
-            onChange={setForm}
-          />
+            <Link
+              to="/profile"
+              className="group block bg-white rounded-2xl shadow-sm border border-slate-100 p-5 transition-all hover:border-emerald-200 hover:shadow-md"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+                    <Icon name="user" size={22} />
+                  </span>
+                  <div>
+                    <h3 className="font-bold text-slate-800">Dueño</h3>
+                    <p className="text-sm text-slate-600">{visiblePet.owner}</p>
+                  </div>
+                </div>
+                <Icon name="user" size={18} className="text-slate-300 transition-colors group-hover:text-emerald-500" />
+              </div>
+              <p className="mt-3 text-xs font-semibold text-emerald-600">
+                Ver perfil del dueño
+              </p>
+            </Link>
+
+            <DigitalPassportCard
+              passport={passportInfo}
+              isEditing={isEditing}
+              onChange={setForm}
+            />
+          </div>
         </div>
-      </div>
       ) : null}
     </div>
   );
