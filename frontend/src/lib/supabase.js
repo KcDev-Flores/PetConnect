@@ -12,13 +12,13 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Valores por defecto del proyecto (son públicos: URL + llave
+// publishable/anon). Se pueden sobreescribir vía .env.
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  "https://mmmtvjdjxmuplqeevkkh.supabase.co";
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  "sb_publishable_r1zt0P3rBZMVQGqn9abJ_A_Y5pJ0IQQ";
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    "[supabase] Faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY en el .env — el login no funcionará."
-  );
-}
-
-export const supabase = createClient(supabaseUrl ?? "", supabaseAnonKey ?? "");
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
