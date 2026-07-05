@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { pets, breeds, currentUser } from "../data/mockData";
+import { breeds } from "../data/mockData";
+import { useAuthStore } from "../store/authStore";
+import { usePets } from "../hooks/usePets";
 import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
 import Icon from "../components/icons/Icons";
@@ -472,10 +474,13 @@ function AnimalPassportCard({ pet, isSelected, isLost, onClick }) {
 
 export default function Passport() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { user } = useAuthStore();
+  const { pets: apiPets } = usePets();
+  
   const [localOwnedPets, setLocalOwnedPets] = useState(() => loadOwnedPets());
   const [deletedPetIds] = useState(() => loadDeletedOwnedPetIds());
-  const visibleBasePets = pets.filter((pet) => !deletedPetIds.some((id) => String(id) === String(pet.id)));
-  const loggedBasePetIds = currentUser.pets.filter((id) => !deletedPetIds.some((deletedId) => String(deletedId) === String(id)));
+  const visibleBasePets = apiPets.filter((pet) => !deletedPetIds.some((id) => String(id) === String(pet.id)));
+  const loggedBasePetIds = visibleBasePets.map(p => p.id);
   const allPets = [...visibleBasePets, ...localOwnedPets];
   const loggedPetIds = [...loggedBasePetIds, ...localOwnedPets.map((pet) => pet.id)];
   const requestedPet = allPets.find((pet) =>
@@ -497,7 +502,7 @@ export default function Passport() {
   const [lostDraft, setLostDraft] = useState({
     lostLocation: "",
     lostDate: "",
-    contactPhone: currentUser.phone,
+    contactPhone: user?.user_metadata?.phone || "",
     reward: "",
     notes: "",
   });
@@ -587,7 +592,7 @@ export default function Passport() {
     setLostDraft({
       lostLocation: "",
       lostDate: "",
-      contactPhone: currentUser.phone,
+      contactPhone: user?.user_metadata?.phone || "",
       reward: "",
       notes: "",
     });
@@ -655,7 +660,7 @@ export default function Passport() {
             <div>
               <h2 className="text-lg font-bold text-slate-800">Mis mascotas</h2>
               <p className="text-sm text-slate-500">
-                Solo se muestran animales vinculados a {currentUser.name}.
+                Solo se muestran animales vinculados a {user?.user_metadata?.name || "tu perfil"}.
               </p>
             </div>
             <Badge variant="success">{ownedPetProfiles.length} registradas</Badge>

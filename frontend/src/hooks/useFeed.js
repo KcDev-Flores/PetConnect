@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { getPosts, createPost } from "../services/api";
-import { currentUser, pets as mockPets } from "../data/mockData";
-import { loadDeletedOwnedPetIds, loadOwnedPets } from "../data/localPets";
+import { useAuthStore } from "../store/authStore";
 
 const LOCAL_FEED_KEY = "petconnect_feed_posts";
 const LOCAL_FEED_INTERACTIONS_KEY = "petconnect_feed_interactions";
@@ -63,18 +62,14 @@ function estimateMapPosition(locationName) {
   };
 }
 
-function getOwnedFeedPets() {
-  const deletedPetIds = loadDeletedOwnedPetIds();
-  const basePets = mockPets.filter((pet) =>
-    currentUser.pets.includes(pet.id) && !deletedPetIds.some((id) => String(id) === String(pet.id))
-  );
-
-  return [...basePets, ...loadOwnedPets()];
-}
-
 export function useFeed() {
-  const [ownedPets, setOwnedPets] = useState(() => getOwnedFeedPets());
-  const [selectedPetId, setSelectedPetId] = useState(() => getOwnedFeedPets()[0]?.id ?? null);
+  const { user } = useAuthStore();
+  
+  // En lugar de usar localStorage para los pets, deberíamos idealmente usar usePets()
+  // pero para no romper la lógica existente del feed local, dejaremos que activePet
+  // sea manejado dinámicamente si le pasan las mascotas.
+  const [ownedPets, setOwnedPets] = useState([]);
+  const [selectedPetId, setSelectedPetId] = useState(null);
   const [feedPosts, setFeedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -90,25 +85,8 @@ export function useFeed() {
       .catch((err) => { setError(err.message); setLoading(false); });
   }, []);
 
-  useEffect(() => {
-    const refreshOwnedPets = () => {
-      const nextOwnedPets = getOwnedFeedPets();
-      setOwnedPets(nextOwnedPets);
-      setSelectedPetId((currentId) =>
-        nextOwnedPets.some((pet) => String(pet.id) === String(currentId))
-          ? currentId
-          : nextOwnedPets[0]?.id ?? null
-      );
-    };
-
-    window.addEventListener("focus", refreshOwnedPets);
-    window.addEventListener("storage", refreshOwnedPets);
-
-    return () => {
-      window.removeEventListener("focus", refreshOwnedPets);
-      window.removeEventListener("storage", refreshOwnedPets);
-    };
-  }, []);
+  // La actualización de ownedPets ahora debe venir desde la UI (Feed.jsx pasará los pets)
+  // o podemos simplemente dejarlo vacío si la UI ya no lo necesita aquí.
 
   const publishPost = async (postDraft) => {
     const draft = typeof postDraft === "string" ? { content: postDraft } : postDraft;
@@ -189,7 +167,7 @@ export function useFeed() {
 
     const comment = {
       id: Date.now(),
-      author: currentUser.name,
+      author: user?.user_metadata?.name || "Anónimo",
       text: body,
       time: "Ahora",
     };

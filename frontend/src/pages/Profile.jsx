@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { currentUser, pets } from "../data/mockData";
+import { useAuthStore } from "../store/authStore";
+import { usePets } from "../hooks/usePets";
 import Avatar from "../components/ui/Avatar";
 import PetCard from "../components/ui/PetCard";
 import Icon from "../components/icons/Icons";
@@ -78,12 +79,15 @@ async function optimizePetPhoto(file) {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { user, updateProfile } = useAuthStore();
+  const { pets: apiPets } = usePets();
+
   const [profile, setProfile] = useState({
-    name: currentUser.name,
-    email: currentUser.email,
-    location: currentUser.location,
-    phone: currentUser.phone,
-    photoUrl: "",
+    name: user?.user_metadata?.name || "Usuario Anónimo",
+    email: user?.email || "",
+    location: user?.user_metadata?.location || "Sin especificar",
+    phone: user?.user_metadata?.phone || "",
+    photoUrl: user?.user_metadata?.photoUrl || "",
   });
   const [draft, setDraft] = useState(profile);
   const [isEditing, setIsEditing] = useState(false);
@@ -93,7 +97,7 @@ export default function Profile() {
   const [petDraft, setPetDraft] = useState(emptyPetForm);
 
   const userPets = [
-    ...pets.filter((p) => currentUser.pets.includes(p.id) && !deletedPetIds.some((id) => String(id) === String(p.id))),
+    ...apiPets.filter((p) => !deletedPetIds.some((id) => String(id) === String(p.id))),
     ...ownedExtraPets,
   ];
 
@@ -101,18 +105,36 @@ export default function Profile() {
     setDraft((current) => ({ ...current, [field]: e.target.value }));
   };
 
-  const handlePhotoSelect = (e) => {
+  const handlePhotoSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const photoUrl = URL.createObjectURL(file);
+    // Usar base64 (optimizePetPhoto) para que persista en Supabase
+    // URL.createObjectURL solo sirve localmente hasta refrescar
+    const photoUrl = await optimizePetPhoto(file);
     setDraft((current) => ({ ...current, photoUrl }));
   };
 
-  const handleEditToggle = () => {
+  const [saving, setSaving] = useState(false);
+
+  const handleEditToggle = async () => {
     if (isEditing) {
-      setProfile(draft);
-      setIsEditing(false);
+      setSaving(true);
+      try {
+        await updateProfile({
+          name: draft.name,
+          location: draft.location,
+          phone: draft.phone,
+          photoUrl: draft.photoUrl
+        });
+        setProfile(draft);
+        setIsEditing(false);
+      } catch (err) {
+        console.error("Error al actualizar perfil:", err);
+        alert("Hubo un error al guardar tu perfil. Intenta de nuevo.");
+      } finally {
+        setSaving(false);
+      }
       return;
     }
 
@@ -170,8 +192,8 @@ export default function Profile() {
       setOwnedExtraPets(savedPets);
     }
 
-    if (currentUser.pets.some((petId) => String(petId) === String(pet.id))) {
-      const nextDeletedPetIds = deletedPetIds.some((petId) => String(petId) === String(pet.id))
+    if (apiPets.some((apiPet) => String(apiPet.id) === String(pet.id))) {
+      const nextDeletedPetIds = deletedPetIds.some((id) => String(id) === String(pet.id))
         ? deletedPetIds
         : [...deletedPetIds, pet.id];
 
@@ -198,7 +220,7 @@ export default function Profile() {
                   className="h-20 w-20 rounded-2xl object-cover shadow-md"
                 />
               ) : (
-                <Avatar icon={currentUser.icon} size="lg" color="#10B981" />
+                <Avatar icon="user" size="lg" color="#10B981" />
               )}
               {isEditing && (
                 <label className="absolute -bottom-2 -right-2 grid h-9 w-9 cursor-pointer place-items-center rounded-xl bg-emerald-500 text-white shadow-lg transition-colors hover:bg-emerald-600">
@@ -214,7 +236,7 @@ export default function Profile() {
             </div>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-slate-800">{visibleProfile.name}</h1>
-              <p className="text-slate-500">{visibleProfile.email}</p>
+              <p className="text-slate-500 mt-1">{visibleProfile.email}</p>
               <div className="mt-2 flex flex-col gap-1 text-sm text-slate-400 sm:flex-row sm:flex-wrap sm:gap-x-4">
                 <p className="flex items-center gap-1">
                   <Icon name="pin" size={14} />
@@ -226,7 +248,7 @@ export default function Profile() {
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 self-start">
+            <div className="flex flex-wrap gap-2 self-start sm:self-center mt-2 sm:mt-0">
               {isEditing && (
                 <button
                   type="button"
@@ -239,13 +261,14 @@ export default function Profile() {
               <button
                 type="button"
                 onClick={handleEditToggle}
+                disabled={saving}
                 className={`flex items-center gap-2 px-5 py-2.5 font-semibold rounded-xl text-sm transition-colors ${isEditing
-                  ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                  ? "bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-50"
                   : "bg-white border border-slate-200 hover:border-emerald-300 text-slate-700"
                   }`}
               >
-                <Icon name={isEditing ? "check" : "edit"} size={16} />
-                {isEditing ? "Guardar cambios" : "Editar perfil"}
+                <Icon name={isEditing ? (saving ? "more" : "check") : "edit"} size={16} />
+                {isEditing ? (saving ? "Guardando..." : "Guardar cambios") : "Editar perfil"}
               </button>
             </div>
           </div>
@@ -305,11 +328,11 @@ export default function Profile() {
               <p className="text-xs text-slate-400">Mascotas</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-800">128</p>
+              <p className="text-2xl font-bold text-slate-800">0</p>
               <p className="text-xs text-slate-400">Seguidores</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-800">45</p>
+              <p className="text-2xl font-bold text-slate-800">0</p>
               <p className="text-xs text-slate-400">Siguiendo</p>
             </div>
           </div>
@@ -701,7 +724,7 @@ export default function Profile() {
       </section>
 
       <p className="text-xs text-slate-400 text-center">
-        Miembro desde {currentUser.joined}
+        Miembro desde {user ? new Date(user.created_at).getFullYear() : "Recientemente"}
       </p>
     </div>
   );
