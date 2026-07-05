@@ -4,6 +4,37 @@ import SocialFeed from "../components/feed/SocialFeed";
 import Stories from "../components/ui/Stories";
 import Icon from "../components/icons/Icons";
 
+function readImageAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function optimizeImage(file) {
+  const originalImage = await readImageAsDataUrl(file);
+  const image = new Image();
+
+  return new Promise((resolve) => {
+    image.onload = () => {
+      const maxSize = 1400;
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+
+      const context = canvas.getContext("2d");
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
+    };
+
+    image.onerror = () => resolve(originalImage);
+    image.src = originalImage;
+  });
+}
+
 export default function Feed() {
   const [postDraft, setPostDraft] = useState({
     content: "",
@@ -22,14 +53,10 @@ export default function Feed() {
     setPostDraft({ content: "", image: "", location: "" });
   };
 
-  const handlePhotoSelect = (file) => {
+  const handlePhotoSelect = async (file) => {
     if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPostDraft((current) => ({ ...current, image: reader.result }));
-    };
-    reader.readAsDataURL(file);
+    const image = await optimizeImage(file);
+    setPostDraft((current) => ({ ...current, image }));
   };
 
   if (loading) {

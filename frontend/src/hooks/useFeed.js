@@ -14,7 +14,19 @@ function readLocalPosts() {
 
 function saveLocalPost(post) {
   const nextPosts = [post, ...readLocalPosts()].slice(0, 30);
-  localStorage.setItem(LOCAL_FEED_KEY, JSON.stringify(nextPosts));
+  try {
+    localStorage.setItem(LOCAL_FEED_KEY, JSON.stringify(nextPosts));
+  } catch {
+    try {
+      const lightweightPosts = nextPosts.map((item) => ({
+        ...item,
+        image: null,
+      }));
+      localStorage.setItem(LOCAL_FEED_KEY, JSON.stringify(lightweightPosts));
+    } catch {
+      localStorage.removeItem(LOCAL_FEED_KEY);
+    }
+  }
 }
 
 function estimateMapPosition(locationName) {
@@ -47,14 +59,6 @@ export function useFeed() {
     const locationName = draft.location?.name?.trim() ?? "";
     if (!content && !draft.image) return;
     
-    // In a real app we would get the petId from activePet
-    await createPost({
-      petId: activePet.id,
-      content,
-      imageUrl: draft.image,
-      location: locationName,
-    });
-    
     const mapPosition = locationName ? estimateMapPosition(locationName) : null;
     const newPost = {
       id: Date.now(),
@@ -75,6 +79,18 @@ export function useFeed() {
 
     saveLocalPost(newPost);
     setFeedPosts((currentPosts) => [newPost, ...currentPosts]);
+
+    try {
+      // In a real app we would get the petId from activePet
+      await createPost({
+        petId: activePet.id,
+        content,
+        imageUrl: draft.image,
+        location: locationName,
+      });
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return { feedPosts, loading, error, activePet, publishPost };
