@@ -15,9 +15,10 @@ export function saveOwnedPets(pets) {
 
 export function createOwnedPet(values, owner) {
   const species = values.species || "Perro";
+  const id = Date.now();
 
   return {
-    id: Date.now(),
+    id,
     name: values.name.trim(),
     breed: values.breed.trim(),
     species,
@@ -29,5 +30,11 @@ export function createOwnedPet(values, owner) {
     followers: 0,
     posts: 0,
     photoUrl: values.photoUrl || "",
+    passport: {
+      code: values.passportCode.trim() || `PC-${String(id).slice(-6)}`,
+      microchip: values.microchip.trim() || `SV-2026-${String(id).slice(-4)}`,
+      issuedAt: values.issuedAt.trim() || "Julio 2026",
+      status: values.passportStatus || "Verificado",
+    },
   };
 }

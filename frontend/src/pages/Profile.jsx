@@ -20,6 +20,10 @@ const emptyPetForm = {
   age: "",
   bio: "",
   photoUrl: "",
+  passportCode: "",
+  microchip: "",
+  issuedAt: "",
+  passportStatus: "Verificado",
 };
 
 export default function Profile() {
@@ -331,6 +335,56 @@ export default function Profile() {
                     required
                   />
                 </FormField>
+              </div>
+
+              <div className="md:col-span-2 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <Icon name="passport" size={20} className="text-emerald-700" />
+                  <div>
+                    <h4 className="font-bold text-emerald-900">Pasaporte digital</h4>
+                    <p className="text-xs text-emerald-700">
+                      Datos que apareceran en el pasaporte de la mascota.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField label="ID del pasaporte">
+                    <input
+                      value={petDraft.passportCode}
+                      onChange={setPetField("passportCode")}
+                      className={inputClass}
+                      placeholder="Ej: PC-000004"
+                    />
+                  </FormField>
+                  <FormField label="Microchip">
+                    <input
+                      value={petDraft.microchip}
+                      onChange={setPetField("microchip")}
+                      className={inputClass}
+                      placeholder="Ej: SV-2026-4304"
+                    />
+                  </FormField>
+                  <FormField label="Emision">
+                    <input
+                      value={petDraft.issuedAt}
+                      onChange={setPetField("issuedAt")}
+                      className={inputClass}
+                      placeholder="Ej: Julio 2026"
+                    />
+                  </FormField>
+                  <FormField label="Estado">
+                    <select
+                      value={petDraft.passportStatus}
+                      onChange={setPetField("passportStatus")}
+                      className={inputClass}
+                    >
+                      <option value="Verificado">Verificado</option>
+                      <option value="Pendiente">Pendiente</option>
+                      <option value="En revision">En revision</option>
+                    </select>
+                  </FormField>
+                </div>
               </div>
             </div>
 

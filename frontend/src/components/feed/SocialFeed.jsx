@@ -1,4 +1,3 @@
-import PageHeader from "../ui/PageHeader";
 import PostComposer from "./PostComposer";
 import PostCard from "../ui/PostCard";
 
@@ -17,9 +16,15 @@ export default function SocialFeed({
   onShare,
 }) {
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <PageHeader title={title} subtitle={subtitle} />
-
+    <div className="mx-auto max-w-[620px] space-y-5">
+      {(title || subtitle) && (
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-black text-slate-900">{title}</h2>
+            {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+          </div>
+        </div>
+      )}
       <PostComposer
         activePet={activePet}
         value={composerValue}
