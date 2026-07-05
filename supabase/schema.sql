@@ -110,3 +110,4 @@ CREATE TABLE IF NOT EXISTS lost_pets (
   photo_url       TEXT,
   created_at      TIMESTAMPTZ DEFAULT now()
 );
+                                                                              
