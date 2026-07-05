@@ -7,6 +7,9 @@ export default function SocialFeed({
   subtitle = "Publicaciones de la comunidad PetConnect",
   posts = [],
   activePet,
+  ownedPets = [],
+  selectedPetId,
+  onPetChange,
   composerValue = "",
   composerImage = "",
   composerLocation = "",
@@ -18,8 +21,7 @@ export default function SocialFeed({
   onPhotoClick,
   onLocationClick,
   onLike,
-  onComment,
-  onShare,
+  onAddComment,
   showComposer = true,
   friendSuggestions = [],
   followedPetIds = [],
@@ -38,6 +40,9 @@ export default function SocialFeed({
       {showComposer && (
         <PostComposer
           activePet={activePet}
+          ownedPets={ownedPets}
+          selectedPetId={selectedPetId}
+          onPetChange={onPetChange}
           value={composerValue}
           imagePreview={composerImage}
           locationValue={composerLocation}
@@ -57,8 +62,7 @@ export default function SocialFeed({
             <PostCard
               post={post}
               onLike={onLike}
-              onComment={onComment}
-              onShare={onShare}
+              onAddComment={onAddComment}
             />
             {index === 0 && (
               <FriendSuggestions

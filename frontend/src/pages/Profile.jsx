@@ -45,6 +45,37 @@ const emptyPetForm = {
   travelNotes: "",
 };
 
+function readImageAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function optimizePetPhoto(file) {
+  const originalImage = await readImageAsDataUrl(file);
+  const image = new Image();
+
+  return new Promise((resolve) => {
+    image.onload = () => {
+      const maxSize = 900;
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+
+      const context = canvas.getContext("2d");
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.78));
+    };
+
+    image.onerror = () => resolve(originalImage);
+    image.src = originalImage;
+  });
+}
+
 export default function Profile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState({
@@ -98,15 +129,12 @@ export default function Profile() {
     setPetDraft((current) => ({ ...current, [field]: e.target.value }));
   };
 
-  const handlePetPhotoSelect = (e) => {
+  const handlePetPhotoSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPetDraft((current) => ({ ...current, photoUrl: reader.result }));
-    };
-    reader.readAsDataURL(file);
+    const photoUrl = await optimizePetPhoto(file);
+    setPetDraft((current) => ({ ...current, photoUrl }));
   };
 
   const handleAddPet = (e) => {
@@ -114,8 +142,9 @@ export default function Profile() {
 
     const nextPet = createOwnedPet(petDraft, profile.name);
     const nextPets = [...ownedExtraPets, nextPet];
-    setOwnedExtraPets(nextPets);
-    saveOwnedPets(nextPets);
+    const savedPets = saveOwnedPets(nextPets);
+
+    setOwnedExtraPets(savedPets);
     setPetDraft(emptyPetForm);
     setShowPetForm(false);
   };
@@ -137,8 +166,8 @@ export default function Profile() {
 
     const nextOwnedExtraPets = ownedExtraPets.filter((ownedPet) => String(ownedPet.id) !== String(pet.id));
     if (nextOwnedExtraPets.length !== ownedExtraPets.length) {
-      setOwnedExtraPets(nextOwnedExtraPets);
-      saveOwnedPets(nextOwnedExtraPets);
+      const savedPets = saveOwnedPets(nextOwnedExtraPets);
+      setOwnedExtraPets(savedPets);
     }
 
     if (currentUser.pets.some((petId) => String(petId) === String(pet.id))) {

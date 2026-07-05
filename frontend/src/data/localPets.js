@@ -11,7 +11,19 @@ export function loadOwnedPets() {
 }
 
 export function saveOwnedPets(pets) {
-  window.localStorage.setItem(OWNED_PETS_KEY, JSON.stringify(pets));
+  try {
+    window.localStorage.setItem(OWNED_PETS_KEY, JSON.stringify(pets));
+    return pets;
+  } catch {
+    const lightweightPets = pets.map((pet) => ({ ...pet, photoUrl: "" }));
+    try {
+      window.localStorage.setItem(OWNED_PETS_KEY, JSON.stringify(lightweightPets));
+    } catch {
+      window.localStorage.removeItem(OWNED_PETS_KEY);
+      window.localStorage.setItem(OWNED_PETS_KEY, JSON.stringify(lightweightPets));
+    }
+    return lightweightPets;
+  }
 }
 
 export function loadDeletedOwnedPetIds() {

@@ -4,6 +4,9 @@ import Icon from "../icons/Icons";
 
 export default function PostComposer({
   activePet,
+  ownedPets = [],
+  selectedPetId,
+  onPetChange,
   value,
   imagePreview,
   locationValue = "",
@@ -27,7 +30,11 @@ export default function PostComposer({
   return (
     <form onSubmit={onSubmit} className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
       <div className="flex items-center gap-3 border-b border-slate-100 p-4">
-        <Avatar icon={activePet?.icon ?? "paw"} size="sm" color={activePet?.color} />
+        {activePet?.photoUrl ? (
+          <img src={activePet.photoUrl} alt={activePet.name} className="h-10 w-10 shrink-0 rounded-2xl object-cover shadow-md" />
+        ) : (
+          <Avatar icon={activePet?.icon ?? "paw"} size="sm" color={activePet?.color} />
+        )}
         <input
           value={value}
           onChange={onChange}
@@ -45,6 +52,27 @@ export default function PostComposer({
       </div>
 
       <div className="space-y-3 p-4">
+        {ownedPets.length > 1 && (
+          <label className="flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-3 py-3 text-sm text-slate-700 sm:flex-row sm:items-center">
+            <span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
+              <Icon name="paw" size={16} />
+              Publicar como
+            </span>
+            <select
+              value={selectedPetId ?? activePet?.id ?? ""}
+              onChange={onPetChange}
+              disabled={disabled}
+              className="min-w-0 flex-1 rounded-xl border border-emerald-100 bg-white px-3 py-2 text-sm font-black text-slate-800 outline-none transition-colors focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 disabled:opacity-50"
+            >
+              {ownedPets.map((pet) => (
+                <option key={pet.id} value={pet.id}>
+                  {pet.name} · {pet.breed}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
         {imagePreview && (
           <div className="relative overflow-hidden rounded-3xl border border-slate-100 bg-slate-50">
             <img src={imagePreview} alt="Vista previa de la publicacion" className="aspect-square w-full object-cover" />

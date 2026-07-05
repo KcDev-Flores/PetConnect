@@ -133,8 +133,6 @@ function createAlertFromDraft(draft, selectedPet, photoUrl) {
 }
 
 function EmergencyAlertCard({ alert, isSelected, onClick, canResolve, onMarkFound }) {
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(alert.lostLocation)}`;
-  const whatsappUrl = createWhatsAppLink(alert.contactPhone, alert.petName, alert.lostLocation);
   const handleMarkFound = (e) => {
     e.stopPropagation();
     onMarkFound(alert.id);
@@ -184,26 +182,14 @@ function EmergencyAlertCard({ alert, isSelected, onClick, canResolve, onMarkFoun
       </button>
 
       <div className="flex flex-wrap gap-2 border-t border-slate-100 p-4">
-        <a
-          href={mapsUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-red-600"
+        <button
+          type="button"
+          onClick={onClick}
+          className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-3 py-2.5 text-xs font-black text-white transition-colors hover:bg-red-600"
         >
-          <Icon name="map" size={15} />
-          Ver ubicacion
-        </a>
-        {whatsappUrl && (
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 transition-colors hover:bg-emerald-100"
-          >
-            <Icon name="phone" size={15} />
-            WhatsApp
-          </a>
-        )}
+          <Icon name="passport" size={15} />
+          Ver informacion
+        </button>
         {canResolve && (
           <button
             type="button"
@@ -219,7 +205,7 @@ function EmergencyAlertCard({ alert, isSelected, onClick, canResolve, onMarkFoun
   );
 }
 
-function SelectedAlertDetail({ alert, canResolve, onMarkFound }) {
+function SelectedAlertDetail({ alert, canResolve, onMarkFound, onBack }) {
   if (!alert) return null;
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(alert.lostLocation)}`;
   const whatsappUrl = createWhatsAppLink(alert.contactPhone, alert.petName, alert.lostLocation);
@@ -233,7 +219,17 @@ function SelectedAlertDetail({ alert, canResolve, onMarkFound }) {
             <h2 className="mt-1 text-2xl font-black text-slate-900">{alert.petName} esta perdido</h2>
             <p className="mt-1 text-sm text-slate-500">{alert.createdAtLabel}</p>
           </div>
-          <Badge variant="danger">{alert.status}</Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="danger">{alert.status}</Badge>
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:border-red-200 hover:text-red-600"
+            >
+              <Icon name="passport" size={16} />
+              Volver a alertas
+            </button>
+          </div>
         </div>
       </div>
 
@@ -384,7 +380,7 @@ export default function Emergency() {
     () => [...localAlerts, ...normalizedReports].map((alert) => hydrateAlertPhoto(alert, sourcePets)),
     [localAlerts, normalizedReports, sourcePets]
   );
-  const selectedAlert = alertPosts.find((alert) => alert.id === selectedAlertId) ?? alertPosts[0] ?? null;
+  const selectedAlert = alertPosts.find((alert) => alert.id === selectedAlertId) ?? null;
   const selectedAlertCanResolve = selectedAlert
     ? localAlerts.some((alert) => String(alert.id) === String(selectedAlert.id))
     : false;
@@ -405,7 +401,7 @@ export default function Emergency() {
 
     setLocalAlerts(nextAlerts);
     saveLocalAlerts(nextAlerts);
-    setSelectedAlertId(alert.id);
+    setSelectedAlertId(null);
     setShowComposer(false);
     setDraft({
       petId: ownedPets[0]?.id ?? "",
@@ -432,11 +428,10 @@ export default function Emergency() {
 
   const handleMarkFound = (alertId) => {
     const nextAlerts = localAlerts.filter((alert) => String(alert.id) !== String(alertId));
-    const nextSelectedId = nextAlerts[0]?.id ?? normalizedReports[0]?.id ?? null;
 
     setLocalAlerts(nextAlerts);
     saveLocalAlerts(nextAlerts);
-    setSelectedAlertId((currentId) => (String(currentId) === String(alertId) ? nextSelectedId : currentId));
+    setSelectedAlertId((currentId) => (String(currentId) === String(alertId) ? null : currentId));
     window.dispatchEvent(new Event("petconnect:lost-alerts-updated"));
   };
 
@@ -596,7 +591,7 @@ export default function Emergency() {
         </form>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+      {!selectedAlert ? (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
@@ -606,12 +601,12 @@ export default function Emergency() {
             <Badge variant="danger">Perdido</Badge>
           </div>
 
-          <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {alertPosts.map((alert) => (
               <EmergencyAlertCard
                 key={alert.id}
                 alert={alert}
-                isSelected={selectedAlert?.id === alert.id}
+                isSelected={false}
                 onClick={() => setSelectedAlertId(alert.id)}
                 canResolve={localAlerts.some((localAlert) => String(localAlert.id) === String(alert.id))}
                 onMarkFound={handleMarkFound}
@@ -619,9 +614,14 @@ export default function Emergency() {
             ))}
           </div>
         </section>
-
-        <SelectedAlertDetail alert={selectedAlert} canResolve={selectedAlertCanResolve} onMarkFound={handleMarkFound} />
-      </div>
+      ) : (
+        <SelectedAlertDetail
+          alert={selectedAlert}
+          canResolve={selectedAlertCanResolve}
+          onMarkFound={handleMarkFound}
+          onBack={() => setSelectedAlertId(null)}
+        />
+      )}
     </div>
   );
 }
