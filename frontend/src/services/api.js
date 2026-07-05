@@ -7,7 +7,10 @@ import {
 } from "../utils/normalizers";
 import { saveStoredSession } from "../utils/sessionUser";
 
-const BASE_URL = import.meta.env.VITE_N8N_BASE_URL || "https://nayelsmadai.app.n8n.cloud/webhook";
+const RAW_BASE_URL = import.meta.env.VITE_N8N_BASE_URL || "https://nayelsmadai.app.n8n.cloud/webhook";
+// Normaliza la URL para que siempre apunte a la ruta /webhook de n8n,
+// sin importar si la variable de entorno la incluye o no.
+const BASE_URL = RAW_BASE_URL.replace(/\/+$/, "").replace(/\/webhook$/, "") + "/webhook";
 
 function getToken() {
   return localStorage.getItem("petconnect:auth-token") ?? "";
