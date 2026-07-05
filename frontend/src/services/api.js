@@ -28,7 +28,9 @@ export async function getLostPets() {
   }
   const res = await fetch(`${BASE_URL}/get-lost-pets`);
   if (!res.ok) throw new Error("Error al obtener reportes");
-  return res.json();
+  const data = await res.json();
+  // n8n a veces devuelve { "data": [...] }, lo desenvolvemos para evitar crasheos
+  return data.data || data;
 }
 
 /**
@@ -42,58 +44,31 @@ export async function reportLostPet(data) {
     console.log("[MOCK] reportLostPet:", data);
     return { status: "ok", reportId: "mock-" + Date.now() };
   }
+  
+  // EL TRUCO MÁS RÁPIDO: Traducir los nombres justo antes de enviarlos
+  const payloadParaN8n = {
+    petId: data.petId || "00000000-0000-0000-0000-000000000000",
+    pet_name: data.petName || "Desconocido",
+    lost_pets: "00000000-0000-0000-0000-000000000000",
+    description: data.description,
+    lastSeen: data.lastSeen,
+    reward: data.reward,
+    ownerPhone: data.ownerPhone,
+    photoUrl: data.photoUrl,
+    breed: data.breed,
+    species: data.species
+  };
+
   const res = await fetch(`${BASE_URL}/report-lost-pet`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payloadParaN8n),
   });
   if (!res.ok) throw new Error("Error al enviar reporte");
-  return res.json();
+  const text = await res.text();
+  return text ? JSON.parse(text) : { status: "ok" };
 }
 
-/**
- * Agrega un avistamiento a un reporte existente.
- * POST /webhook/add-sighting
- * Body: { reportId, comment, location, lat?, lng? }
- * Response: { status: "ok" }
- */
-export async function addSighting(data) {
-  if (USE_MOCK) {
-    console.log("[MOCK] addSighting:", data);
-    return { status: "ok" };
-  }
-  const res = await fetch(`${BASE_URL}/add-sighting`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Error al enviar avistamiento");
-  return res.json();
-}
-
-// ──────────────────────────────────────────
-// BÚSQUEDA POR FOTO (IA)
-// ──────────────────────────────────────────
-
-/**
- * Envía una foto para búsqueda por IA (Fal + Exa).
- * POST /webhook/search-by-photo
- * Body: { photoUrl: string }
- * Response: { matchFound: boolean, pet?: PetMatch }
- */
-export async function searchByPhoto(photoUrl) {
-  if (USE_MOCK) {
-    console.log("[MOCK] searchByPhoto:", photoUrl);
-    return { matchFound: false };
-  }
-  const res = await fetch(`${BASE_URL}/search-by-photo`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ photoUrl }),
-  });
-  if (!res.ok) throw new Error("Error en búsqueda por foto");
-  return res.json();
-}
 
 // ──────────────────────────────────────────
 // MASCOTAS REGISTRADAS (PASAPORTE)
@@ -111,7 +86,9 @@ export async function getUserPets(userId) {
   }
   const res = await fetch(`${BASE_URL}/get-user-pets?userId=${userId}`);
   if (!res.ok) throw new Error("Error al obtener mascotas");
-  return res.json();
+  const data = await res.json();
+  // n8n a veces devuelve { "items": [...] }, lo desenvolvemos
+  return data.items || data.data || data;
 }
 
 /**
@@ -131,7 +108,8 @@ export async function savePet(data) {
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Error al guardar mascota");
-  return res.json();
+  const text = await res.text();
+  return text ? JSON.parse(text) : { status: "ok" };
 }
 
 // ──────────────────────────────────────────
@@ -150,13 +128,34 @@ export async function getPosts() {
   }
   const res = await fetch(`${BASE_URL}/get-posts`);
   if (!res.ok) throw new Error("Error al obtener posts");
-  return res.json();
+  
+  const rawData = await res.json();
+  
+  // 1. n8n a veces no devuelve un array si P3 olvida darle a "Return All",
+  // o lo envuelve en "data". Lo forzamos a ser un Array.
+  const dataArray = Array.isArray(rawData) 
+    ? rawData 
+    : (rawData.data || rawData.items || [rawData]);
+
+  // 2. P3 ignoró la vista SQL y mandó los datos crudos con llaves diferentes.
+  // Mapeamos todo para que React no crashee.
+  return dataArray.map(post => ({
+    id: post.id,
+    petId: post.pet_id || post.petId,
+    petName: post.petName || (post.pets && post.pets.name) || "Desconocido",
+    icon: post.icon || (post.pets && post.pets.species) || "dog",
+    content: post.content,
+    image: post.image || post.image_url || null,
+    likes: post.likes || 0,
+    comments: post.comments || 0,
+    time: post.time || post.created_at || "Recientemente"
+  }));
 }
 
 /**
  * Publica un nuevo post en el feed.
  * POST /webhook/create-post
- * Body: { petId, content, imageUrl? }
+ * Body: { petId, content, imageUrl?, location? }
  * Response: { status: "ok", postId: string }
  */
 export async function createPost(data) {
@@ -170,8 +169,10 @@ export async function createPost(data) {
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Error al publicar");
-  return res.json();
+  const text = await res.text();
+  return text ? JSON.parse(text) : { status: "ok" };
 }
+
 
 // ──────────────────────────────────────────
 // AUTENTICACIÓN
@@ -220,3 +221,4 @@ export async function register(name, email, password) {
   if (!res.ok) throw new Error("Error al registrar usuario");
   return res.json();
 }
+

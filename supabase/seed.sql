@@ -73,7 +73,8 @@ ON CONFLICT (id) DO NOTHING;
 -- pet_id links each report to the registered pet (required).
 -- Toby shares location (lat/lng set) -> shows a map pin.
 -- Michi does NOT share location (lat/lng NULL) -> text only.
-INSERT INTO lost_pets (id, pet_id, pet_name, breed, species, description, last_seen, last_seen_lat, last_seen_lng, last_seen_date, reward, owner_name, owner_phone) VALUES
-  ('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000004', 'Toby',  'Beagle', 'Perro', 'Beagle tricolor, collar rojo con placa.',      'Colonia Escalón, San Salvador', 13.700800, -89.240900, '2026-07-03', '$50', 'Pedro Hernández', '+503 7123-4567'),
-  ('bbbbbbbb-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000005', 'Michi', 'Persa',  'Gato',  'Gato persa blanco, ojos azules, sin collar.', 'Antiguo Cuscatlán',             NULL,       NULL,        '2026-07-02', NULL,  'Laura Vega',      '+503 7890-1234')
+-- pet_name/breed/species come from the linked pet via pet_id (not duplicated).
+INSERT INTO lost_pets (id, pet_id, description, last_seen, last_seen_lat, last_seen_lng, last_seen_date, reward, owner_name, owner_phone) VALUES
+  ('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000004', 'Beagle tricolor, collar rojo con placa.',      'Colonia Escalón, San Salvador', 13.700800, -89.240900, '2026-07-03', '$50', 'Pedro Hernández', '+503 7123-4567'),
+  ('bbbbbbbb-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000005', 'Gato persa blanco, ojos azules, sin collar.', 'Antiguo Cuscatlán',             NULL,       NULL,        '2026-07-02', NULL,  'Laura Vega',      '+503 7890-1234')
 ON CONFLICT (id) DO NOTHING;
