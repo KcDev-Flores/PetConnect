@@ -4,7 +4,6 @@ import SocialFeed from "../components/feed/SocialFeed";
 import PostComposer from "../components/feed/PostComposer";
 import Stories from "../components/ui/Stories";
 import Icon from "../components/icons/Icons";
-import { currentUser, pets as passportPets } from "../data/mockData";
 
 const FOLLOWED_PETS_KEY = "petconnect:followed-pets";
 
@@ -63,6 +62,7 @@ export default function Feed() {
     feedPosts,
     loading,
     ownedPets,
+    publicPets,
     activePet,
     selectedPetId,
     setSelectedPetId,
@@ -70,9 +70,9 @@ export default function Feed() {
     togglePostLike,
     addPostComment,
   } = useFeed();
-  const suggestedPets = passportPets
+  const suggestedPets = publicPets
     .filter((pet) =>
-      !currentUser.pets.includes(pet.id) &&
+      !ownedPets.some((ownedPet) => String(ownedPet.id) === String(pet.id)) &&
       pet.id !== activePet?.id &&
       !followedPetIds.some((followedId) => String(followedId) === String(pet.id))
     )
@@ -205,21 +205,22 @@ export default function Feed() {
             </div>
           </div>
           <div className="mt-5 space-y-3">
-            {[
-              ["dog", "Max", "Golden Retriever activo"],
-              ["cat", "Luna", "Historia nueva"],
-              ["map", "San Salvador", "Zona con mas reportes"],
-            ].map(([icon, title, text]) => (
-              <button key={title} type="button" className="flex w-full gap-3 rounded-2xl p-3 text-left transition-colors hover:bg-slate-50">
+            {suggestedPets.slice(0, 3).map((pet) => (
+              <button key={pet.id} type="button" className="flex w-full gap-3 rounded-2xl p-3 text-left transition-colors hover:bg-slate-50">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-600">
-                  <Icon name={icon} size={19} />
+                  <Icon name={pet.icon || "paw"} size={19} />
                 </span>
                 <span>
-                  <p className="text-sm font-bold text-slate-800">{title}</p>
-                  <p className="text-xs text-slate-500">{text}</p>
+                  <p className="text-sm font-bold text-slate-800">{pet.name}</p>
+                  <p className="text-xs text-slate-500">{pet.breed}</p>
                 </span>
               </button>
             ))}
+            {!suggestedPets.length && (
+              <p className="rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-400">
+                Las sugerencias apareceran cuando el backend devuelva mas perfiles.
+              </p>
+            )}
           </div>
         </div>
       </aside>

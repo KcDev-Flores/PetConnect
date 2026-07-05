@@ -6,14 +6,6 @@ const VIEWED_STORIES_KEY = "petconnect_viewed_stories";
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const STORY_DURATION_MS = 7000;
 
-const demoStories = [
-  { id: "demo-max", name: "Max", place: "Izalco", caption: "Paseo de la manana con mucho sol.", icon: "dog", color: "#F59E0B", tone: "from-amber-400 via-orange-300 to-emerald-400" },
-  { id: "demo-cleo", name: "Cleo", place: "Colon", caption: "Nueva zona favorita para explorar.", icon: "cat", color: "#38BDF8", tone: "from-sky-400 via-cyan-300 to-emerald-300" },
-  { id: "demo-rocky", name: "Rocky", place: "Sonsonate", caption: "Rocky encontro amigos en el parque.", icon: "dog", color: "#EC4899", tone: "from-rose-400 via-pink-300 to-amber-300" },
-  { id: "demo-bella", name: "Bella", place: "Juayua", caption: "Dia tranquilo, mucha sombra y agua.", icon: "paw", color: "#10B981", tone: "from-emerald-400 via-lime-300 to-sky-300" },
-  { id: "demo-michi", name: "Michi", place: "Cuscatlan", caption: "Michi supervisando todo desde arriba.", icon: "cat", color: "#8B5CF6", tone: "from-violet-400 via-indigo-300 to-sky-300" },
-];
-
 function readImageAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -412,7 +404,7 @@ export default function Stories({ ownedPets = [], activePet = null }) {
     return () => window.clearInterval(intervalId);
   }, []);
 
-  const stories = useMemo(() => [...userStories, ...demoStories], [userStories]);
+  const stories = useMemo(() => userStories, [userStories]);
   const storyGroups = useMemo(() => groupStoriesByProfile(stories), [stories]);
   const activeGroup = storyGroups.find((group) =>
     group.stories.some((story) => String(story.id) === String(activeStoryId))

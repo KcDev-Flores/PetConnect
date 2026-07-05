@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { login, register } from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { saveStoredSession } from "../utils/sessionUser";
 
 export function useAuth() {
   const [loading, setLoading] = useState(false);
@@ -12,7 +13,7 @@ export function useAuth() {
     setError(null);
     try {
       const data = await login(email, password);
-      // Here you would normally save the token and user to context or local storage
+      saveStoredSession(data);
       navigate("/");
       return data;
     } catch (err) {
@@ -27,6 +28,7 @@ export function useAuth() {
     setError(null);
     try {
       const data = await register(name, email, password);
+      saveStoredSession(data);
       navigate("/");
       return data;
     } catch (err) {

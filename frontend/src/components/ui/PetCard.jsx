@@ -1,19 +1,8 @@
 import Avatar from "./Avatar";
 import Badge from "./Badge";
 
-const LOCAL_ALERTS_KEY = "petconnect:lost-alert-posts";
-
-function isPetLost(petId) {
-  try {
-    const alerts = JSON.parse(localStorage.getItem(LOCAL_ALERTS_KEY)) ?? [];
-    return alerts.some((alert) => String(alert.petId) === String(petId));
-  } catch {
-    return false;
-  }
-}
-
-export default function PetCard({ pet, onClick }) {
-  const lost = isPetLost(pet.id);
+export default function PetCard({ pet, onClick, isLost = false }) {
+  const lost = isLost;
   const frameClass = lost ? "border-red-400 ring-red-200" : "border-emerald-400 ring-emerald-200";
 
   return (

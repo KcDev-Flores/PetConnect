@@ -1,13 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { pets, breeds, currentUser } from "../data/mockData";
 import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
 import Icon from "../components/icons/Icons";
 import { FormField, inputClass, textareaClass } from "../components/ui/FormPrimitives";
-import { loadDeletedOwnedPetIds, loadOwnedPets, saveOwnedPets } from "../data/localPets";
-
-const LOCAL_ALERTS_KEY = "petconnect:lost-alert-posts";
+import { usePets } from "../hooks/usePets";
+import { createSessionProfile } from "../utils/sessionUser";
+import { getLostPets, getVaccines, getVetRecords, reportLostPet, saveVaccine, saveVetRecord } from "../services/api";
 
 function createPassportInfo(pet) {
   return {
@@ -16,27 +15,6 @@ function createPassportInfo(pet) {
     issuedAt: "Julio 2026",
     status: "Verificado",
   };
-}
-
-function readLocalEmergencyAlerts() {
-  try {
-    return JSON.parse(localStorage.getItem(LOCAL_ALERTS_KEY)) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-function getLostPetIds() {
-  return readLocalEmergencyAlerts().map((alert) => alert.petId);
-}
-
-function saveLocalEmergencyAlerts(alerts) {
-  try {
-    localStorage.setItem(LOCAL_ALERTS_KEY, JSON.stringify(alerts));
-  } catch {
-    const lightweightAlerts = alerts.map((alert, index) => (index === 0 ? alert : { ...alert, photoUrl: "" }));
-    localStorage.setItem(LOCAL_ALERTS_KEY, JSON.stringify(lightweightAlerts));
-  }
 }
 
 function optimizeAlertPhoto(photoUrl) {
@@ -112,6 +90,16 @@ function createTravelInfo(pet) {
     microchipStandard: "ISO 11784/11785",
     airlineCrate: "Transportadora IATA pendiente de validar",
     notes: "Validar requisitos especificos con la embajada, aerolinea y autoridad sanitaria del pais destino.",
+  };
+}
+
+function createPassportPetProfile(pet) {
+  return {
+    ...pet,
+    photoUrl: pet.photoUrl || "",
+    passport: pet.passport ?? createPassportInfo(pet),
+    veterinaryInfo: createVeterinaryInfo(pet),
+    travelInfo: createTravelInfo(pet),
   };
 }
 
@@ -209,7 +197,7 @@ function InfoLine({ label, value }) {
   );
 }
 
-function VeterinaryInfoCard({ veterinaryInfo, isEditing, onChange }) {
+function VeterinaryInfoCard({ veterinaryInfo, vetRecords = [], isEditing, onChange }) {
   const setVeterinaryField = (field) => (e) => {
     onChange((current) => ({
       ...current,
@@ -289,6 +277,24 @@ function VeterinaryInfoCard({ veterinaryInfo, isEditing, onChange }) {
           <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm leading-relaxed text-sky-900">
             {veterinaryInfo.notes}
           </div>
+
+          {vetRecords.length > 0 && (
+            <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">Registros veterinarios</p>
+              <div className="mt-3 space-y-2">
+                {vetRecords.slice(0, 4).map((record, index) => (
+                  <div key={record.id ?? index} className="rounded-xl bg-white px-3 py-2 text-sm">
+                    <p className="font-black text-slate-800">
+                      {record.title ?? record.name ?? record.vaccine ?? "Registro veterinario"}
+                    </p>
+                    <p className="text-xs font-semibold text-slate-400">
+                      {record.date ?? record.applied_at ?? record.created_at ?? "Fecha pendiente"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
     </section>
@@ -472,24 +478,16 @@ function AnimalPassportCard({ pet, isSelected, isLost, onClick }) {
 
 export default function Passport() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [localOwnedPets, setLocalOwnedPets] = useState(() => loadOwnedPets());
-  const [deletedPetIds] = useState(() => loadDeletedOwnedPetIds());
-  const visibleBasePets = pets.filter((pet) => !deletedPetIds.some((id) => String(id) === String(pet.id)));
-  const loggedBasePetIds = currentUser.pets.filter((id) => !deletedPetIds.some((deletedId) => String(deletedId) === String(id)));
-  const allPets = [...visibleBasePets, ...localOwnedPets];
-  const loggedPetIds = [...loggedBasePetIds, ...localOwnedPets.map((pet) => pet.id)];
+  const currentUser = createSessionProfile();
+  const { pets: allPets, savePet } = usePets();
+  const loggedPetIds = allPets.map((pet) => pet.id);
+  const requestedPetId = searchParams.get("pet");
   const requestedPet = allPets.find((pet) =>
-    String(pet.id) === searchParams.get("pet") && loggedPetIds.includes(pet.id)
+    String(pet.id) === requestedPetId && loggedPetIds.some((id) => String(id) === String(pet.id))
   );
   const initialPetId = requestedPet?.id ?? null;
   const [petProfiles, setPetProfiles] = useState(() =>
-    allPets.map((pet) => ({
-      ...pet,
-      photoUrl: pet.photoUrl || "",
-      passport: pet.passport ?? createPassportInfo(pet),
-      veterinaryInfo: createVeterinaryInfo(pet),
-      travelInfo: createTravelInfo(pet),
-    }))
+    allPets.map(createPassportPetProfile)
   );
   const [selectedPetId, setSelectedPetId] = useState(initialPetId);
   const [isEditing, setIsEditing] = useState(false);
@@ -501,12 +499,53 @@ export default function Passport() {
     reward: "",
     notes: "",
   });
-  const [lostPetIds, setLostPetIds] = useState(() => getLostPetIds());
+  const [lostPetIds, setLostPetIds] = useState([]);
   const [lostAlertCreated, setLostAlertCreated] = useState(false);
-  const ownedPetProfiles = petProfiles.filter((pet) => loggedPetIds.includes(pet.id));
-  const selectedPet = ownedPetProfiles.find((pet) => pet.id === selectedPetId) ?? null;
+  const [vetRecords, setVetRecords] = useState([]);
+  const ownedPetProfiles = petProfiles.filter((pet) => loggedPetIds.some((id) => String(id) === String(pet.id)));
+  const selectedPet = ownedPetProfiles.find((pet) => String(pet.id) === String(selectedPetId)) ?? null;
   const [form, setForm] = useState(selectedPet ? { ...selectedPet } : null);
-  const canEditSelectedPet = Boolean(selectedPet && loggedPetIds.includes(selectedPet.id));
+  const canEditSelectedPet = Boolean(selectedPet && loggedPetIds.some((id) => String(id) === String(selectedPet.id)));
+
+  useEffect(() => {
+    let isActive = true;
+
+    Promise.resolve().then(() => {
+      if (!isActive) return;
+
+      const nextProfiles = allPets.map(createPassportPetProfile);
+      setPetProfiles(nextProfiles);
+
+      const routePet = requestedPetId
+        ? nextProfiles.find((pet) => String(pet.id) === String(requestedPetId))
+        : null;
+
+      if (routePet) {
+        setSelectedPetId(routePet.id);
+        setForm((currentForm) =>
+          currentForm && String(currentForm.id) === String(routePet.id)
+            ? currentForm
+            : { ...routePet }
+        );
+        return;
+      }
+
+      setSelectedPetId((currentId) =>
+        nextProfiles.some((pet) => String(pet.id) === String(currentId))
+          ? currentId
+          : null
+      );
+      setForm((currentForm) =>
+        currentForm && nextProfiles.some((pet) => String(pet.id) === String(currentForm.id))
+          ? currentForm
+          : null
+      );
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [allPets, requestedPetId]);
 
   const handleSave = () => {
     if (!canEditSelectedPet || !form) return;
@@ -518,22 +557,76 @@ export default function Passport() {
 
     setPetProfiles((current) =>
       current.map((pet) =>
-        pet.id === selectedPetId ? updatedPet : pet
+        String(pet.id) === String(selectedPetId) ? updatedPet : pet
       )
     );
-    if (localOwnedPets.some((pet) => pet.id === selectedPetId)) {
-      const nextLocalOwnedPets = localOwnedPets.map((pet) =>
-        pet.id === selectedPetId ? updatedPet : pet
-      );
-      setLocalOwnedPets(nextLocalOwnedPets);
-      saveOwnedPets(nextLocalOwnedPets);
+    savePet(updatedPet);
+    saveVetRecord({
+      petId: updatedPet.id,
+      ...veterinaryInfo,
+    }).catch(() => {});
+    if (travelInfo.rabiesVaccine) {
+      saveVaccine({
+        petId: updatedPet.id,
+        vaccine: "Rabia",
+        status: travelInfo.rabiesVaccine,
+      }).catch(() => {});
     }
     setForm((current) => (current ? { ...current, passport, veterinaryInfo, travelInfo } : current));
     setIsEditing(false);
   };
 
+  useEffect(() => {
+    let isActive = true;
+
+    if (!selectedPetId) {
+      Promise.resolve().then(() => {
+        if (isActive) setVetRecords([]);
+      });
+      return () => {
+        isActive = false;
+      };
+    }
+
+    Promise.allSettled([
+      getVetRecords(selectedPetId),
+      getVaccines(selectedPetId),
+    ])
+      .then(([recordsResult, vaccinesResult]) => {
+        if (!isActive) return;
+
+        const records = recordsResult.status === "fulfilled" ? recordsResult.value : [];
+        const vaccines = vaccinesResult.status === "fulfilled" ? vaccinesResult.value : [];
+        setVetRecords([...records, ...vaccines]);
+      })
+      .catch(() => {
+        if (isActive) setVetRecords([]);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedPetId]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    getLostPets()
+      .then((lostPets) => {
+        if (!isActive) return;
+        setLostPetIds(lostPets.map((alert) => alert.petId));
+      })
+      .catch(() => {
+        if (isActive) setLostPetIds([]);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   const handleSelectPet = (pet) => {
-    if (!loggedPetIds.includes(pet.id)) return;
+    if (!loggedPetIds.some((id) => String(id) === String(pet.id))) return;
 
     setSelectedPetId(pet.id);
     setForm({ ...pet });
@@ -577,13 +670,22 @@ export default function Passport() {
 
     const alertPhoto = await optimizeAlertPhoto(visiblePet.photoUrl);
     const alert = createLostAlertFromPet(visiblePet, lostDraft, alertPhoto);
-    const nextAlerts = [alert, ...readLocalEmergencyAlerts()];
 
-    try {
-      saveLocalEmergencyAlerts(nextAlerts);
-    } catch {
-      saveLocalEmergencyAlerts([{ ...alert, photoUrl: "" }]);
-    }
+    await reportLostPet({
+      petId: alert.petId,
+      petName: alert.petName,
+      breed: alert.breed,
+      species: alert.species,
+      description: alert.notes,
+      lastSeen: alert.lostLocation,
+      lastSeenDate: alert.lostDate,
+      ownerPhone: alert.contactPhone,
+      reward: alert.reward || null,
+      passportCode: alert.passport.code,
+      microchip: alert.passport.microchip,
+      photoUrl: alert.photoUrl,
+    });
+
     setLostDraft({
       lostLocation: "",
       lostDate: "",
@@ -614,7 +716,7 @@ export default function Passport() {
     );
   }
   const visiblePet = isEditing && form ? form : selectedPet;
-  const breedInfo = visiblePet ? breeds.find((b) => b.name === visiblePet.breed) : null;
+  const breedInfo = null;
   const passportInfo = visiblePet ? visiblePet.passport ?? createPassportInfo(visiblePet) : null;
   const veterinaryInfo = visiblePet ? visiblePet.veterinaryInfo ?? createVeterinaryInfo(visiblePet) : null;
   const travelInfo = visiblePet ? visiblePet.travelInfo ?? createTravelInfo(visiblePet) : null;
@@ -770,16 +872,13 @@ export default function Passport() {
                         />
                       </FormField>
                       <FormField label="Raza" required>
-                        <select
+                        <input
                           value={form.breed}
                           onChange={(e) => setForm({ ...form, breed: e.target.value })}
                           className={inputClass}
+                          placeholder="Ej: Labrador, criollo, siames"
                           required
-                        >
-                          {breeds.map((b) => (
-                            <option key={b.id} value={b.name}>{b.name}</option>
-                          ))}
-                        </select>
+                        />
                       </FormField>
                     </div>
 
@@ -983,6 +1082,7 @@ export default function Passport() {
             {veterinaryInfo && (
               <VeterinaryInfoCard
                 veterinaryInfo={veterinaryInfo}
+                vetRecords={vetRecords}
                 isEditing={isEditing}
                 onChange={setForm}
               />

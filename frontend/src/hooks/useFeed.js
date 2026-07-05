@@ -1,35 +1,8 @@
 import { useState, useEffect } from "react";
-import { getPosts, createPost } from "../services/api";
-import { currentUser, pets as mockPets } from "../data/mockData";
-import { loadDeletedOwnedPetIds, loadOwnedPets } from "../data/localPets";
+import { addComment, createPost, getComments, getPosts, getPublicPets, getUserPets } from "../services/api";
+import { createSessionProfile, getSessionUserId } from "../utils/sessionUser";
 
-const LOCAL_FEED_KEY = "petconnect_feed_posts";
 const LOCAL_FEED_INTERACTIONS_KEY = "petconnect_feed_interactions";
-
-function readLocalPosts() {
-  try {
-    return JSON.parse(localStorage.getItem(LOCAL_FEED_KEY)) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLocalPost(post) {
-  const nextPosts = [post, ...readLocalPosts()].slice(0, 30);
-  try {
-    localStorage.setItem(LOCAL_FEED_KEY, JSON.stringify(nextPosts));
-  } catch {
-    try {
-      const lightweightPosts = nextPosts.map((item) => ({
-        ...item,
-        image: null,
-      }));
-      localStorage.setItem(LOCAL_FEED_KEY, JSON.stringify(lightweightPosts));
-    } catch {
-      localStorage.removeItem(LOCAL_FEED_KEY);
-    }
-  }
-}
 
 function readLocalInteractions() {
   try {
@@ -45,15 +18,31 @@ function saveLocalInteractions(interactions) {
 
 function applyPostInteractions(post, interactions) {
   const interaction = interactions[String(post.id)] ?? {};
-  const commentsList = interaction.commentsList ?? [];
 
   return {
     ...post,
     liked: Boolean(interaction.liked),
     likes: Math.max(0, (post.likes ?? 0) + (interaction.likeDelta ?? 0)),
-    comments: (post.comments ?? 0) + commentsList.length,
-    commentsList,
+    comments: post.commentsList?.length ?? post.comments ?? 0,
+    commentsList: post.commentsList ?? [],
   };
+}
+
+async function attachCommentsToPosts(posts) {
+  const commentResults = await Promise.allSettled(
+    posts.map((post) => getComments(post.id))
+  );
+
+  return posts.map((post, index) => {
+    const result = commentResults[index];
+    const commentsList = result.status === "fulfilled" ? result.value : post.commentsList ?? [];
+
+    return {
+      ...post,
+      commentsList,
+      comments: commentsList.length || post.comments || 0,
+    };
+  });
 }
 
 function estimateMapPosition(locationName) {
@@ -63,52 +52,54 @@ function estimateMapPosition(locationName) {
   };
 }
 
-function getOwnedFeedPets() {
-  const deletedPetIds = loadDeletedOwnedPetIds();
-  const basePets = mockPets.filter((pet) =>
-    currentUser.pets.includes(pet.id) && !deletedPetIds.some((id) => String(id) === String(pet.id))
-  );
-
-  return [...basePets, ...loadOwnedPets()];
-}
-
 export function useFeed() {
-  const [ownedPets, setOwnedPets] = useState(() => getOwnedFeedPets());
-  const [selectedPetId, setSelectedPetId] = useState(() => getOwnedFeedPets()[0]?.id ?? null);
+  const currentUser = createSessionProfile();
+  const userId = getSessionUserId();
+  const [ownedPets, setOwnedPets] = useState([]);
+  const [publicPets, setPublicPets] = useState([]);
+  const [selectedPetId, setSelectedPetId] = useState(null);
   const [feedPosts, setFeedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const activePet = ownedPets.find((pet) => String(pet.id) === String(selectedPetId)) ?? ownedPets[0] ?? null;
 
   useEffect(() => {
-    getPosts()
-      .then((data) => {
+    let isActive = true;
+
+    Promise.allSettled([
+      getPosts().then(attachCommentsToPosts),
+      getUserPets(userId),
+      getPublicPets(),
+    ])
+      .then(([postsResult, userPetsResult, publicPetsResult]) => {
+        if (!isActive) return;
+
         const interactions = readLocalInteractions();
-        setFeedPosts([...readLocalPosts(), ...data].map((post) => applyPostInteractions(post, interactions)));
+        const posts = postsResult.status === "fulfilled" ? postsResult.value : [];
+        const nextOwnedPets = userPetsResult.status === "fulfilled" ? userPetsResult.value : [];
+        const nextPublicPets = publicPetsResult.status === "fulfilled" ? publicPetsResult.value : [];
+
+        setOwnedPets(nextOwnedPets);
+        setSelectedPetId((currentId) =>
+          nextOwnedPets.some((pet) => String(pet.id) === String(currentId))
+            ? currentId
+            : nextOwnedPets[0]?.id ?? ""
+        );
+        setPublicPets(nextPublicPets);
+        setFeedPosts(posts.map((post) => applyPostInteractions(post, interactions)));
+        setError(postsResult.status === "rejected" ? postsResult.reason.message : null);
         setLoading(false);
       })
-      .catch((err) => { setError(err.message); setLoading(false); });
-  }, []);
-
-  useEffect(() => {
-    const refreshOwnedPets = () => {
-      const nextOwnedPets = getOwnedFeedPets();
-      setOwnedPets(nextOwnedPets);
-      setSelectedPetId((currentId) =>
-        nextOwnedPets.some((pet) => String(pet.id) === String(currentId))
-          ? currentId
-          : nextOwnedPets[0]?.id ?? null
-      );
-    };
-
-    window.addEventListener("focus", refreshOwnedPets);
-    window.addEventListener("storage", refreshOwnedPets);
+      .catch((err) => {
+        if (!isActive) return;
+        setError(err.message);
+        setLoading(false);
+      });
 
     return () => {
-      window.removeEventListener("focus", refreshOwnedPets);
-      window.removeEventListener("storage", refreshOwnedPets);
+      isActive = false;
     };
-  }, []);
+  }, [userId]);
 
   const publishPost = async (postDraft) => {
     const draft = typeof postDraft === "string" ? { content: postDraft } : postDraft;
@@ -116,7 +107,7 @@ export function useFeed() {
     const locationName = draft.location?.name?.trim() ?? "";
     const postPet = ownedPets.find((pet) => String(pet.id) === String(draft.petId)) ?? activePet;
     if ((!content && !draft.image) || !postPet) return;
-    
+
     const mapPosition = locationName ? estimateMapPosition(locationName) : null;
     const newPost = {
       id: Date.now(),
@@ -127,12 +118,7 @@ export function useFeed() {
       petPhotoUrl: postPet.photoUrl ?? "",
       content,
       image: draft.image ?? null,
-      location: locationName
-        ? {
-            name: locationName,
-            ...mapPosition,
-          }
-        : null,
+      location: locationName ? { name: locationName, ...mapPosition } : null,
       likes: 0,
       comments: 0,
       commentsList: [],
@@ -140,11 +126,11 @@ export function useFeed() {
       time: "Ahora",
     };
 
-    saveLocalPost(newPost);
     setFeedPosts((currentPosts) => [newPost, ...currentPosts]);
 
     try {
       await createPost({
+        userId,
         petId: postPet.id,
         content,
         imageUrl: draft.image,
@@ -157,7 +143,7 @@ export function useFeed() {
 
   const togglePostLike = (post) => {
     const interactions = readLocalInteractions();
-    const interaction = interactions[String(post.id)] ?? { liked: false, likeDelta: 0, commentsList: [] };
+    const interaction = interactions[String(post.id)] ?? { liked: false, likeDelta: 0 };
     const nextLiked = !interaction.liked;
     const nextInteraction = {
       ...interaction,
@@ -165,10 +151,7 @@ export function useFeed() {
       likeDelta: (interaction.likeDelta ?? 0) + (nextLiked ? 1 : -1),
     };
 
-    saveLocalInteractions({
-      ...interactions,
-      [String(post.id)]: nextInteraction,
-    });
+    saveLocalInteractions({ ...interactions, [String(post.id)]: nextInteraction });
 
     setFeedPosts((currentPosts) =>
       currentPosts.map((currentPost) =>
@@ -183,27 +166,17 @@ export function useFeed() {
     );
   };
 
-  const addPostComment = (post, text) => {
+  const addPostComment = async (post, text) => {
     const body = text.trim();
     if (!body) return;
 
     const comment = {
       id: Date.now(),
+      postId: post.id,
       author: currentUser.name,
       text: body,
       time: "Ahora",
     };
-    const interactions = readLocalInteractions();
-    const interaction = interactions[String(post.id)] ?? { liked: false, likeDelta: 0, commentsList: [] };
-    const nextInteraction = {
-      ...interaction,
-      commentsList: [...(interaction.commentsList ?? []), comment],
-    };
-
-    saveLocalInteractions({
-      ...interactions,
-      [String(post.id)]: nextInteraction,
-    });
 
     setFeedPosts((currentPosts) =>
       currentPosts.map((currentPost) =>
@@ -216,6 +189,17 @@ export function useFeed() {
           : currentPost
       )
     );
+
+    try {
+      await addComment({
+        postId: post.id,
+        userId,
+        author: currentUser.name,
+        text: body,
+      });
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return {
@@ -223,6 +207,7 @@ export function useFeed() {
     loading,
     error,
     ownedPets,
+    publicPets,
     activePet,
     selectedPetId,
     setSelectedPetId,

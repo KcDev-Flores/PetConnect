@@ -21,7 +21,8 @@ export default function PostComposer({
   placeholder = "Escribe una descripcion...",
 }) {
   const locationInputRef = useRef(null);
-  const canPublish = Boolean(value?.trim() || imagePreview);
+  const selectedProfileId = selectedPetId ?? activePet?.id ?? "";
+  const canPublish = Boolean((value?.trim() || imagePreview) && selectedProfileId);
   const focusLocationInput = () => {
     onLocationClick?.();
     locationInputRef.current?.focus();
@@ -52,18 +53,20 @@ export default function PostComposer({
       </div>
 
       <div className="space-y-3 p-4">
-        {ownedPets.length > 1 && (
+        {ownedPets.length > 0 ? (
           <label className="flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-3 py-3 text-sm text-slate-700 sm:flex-row sm:items-center">
             <span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
               <Icon name="paw" size={16} />
               Publicar como
             </span>
             <select
-              value={selectedPetId ?? activePet?.id ?? ""}
+              value={selectedProfileId}
               onChange={onPetChange}
               disabled={disabled}
               className="min-w-0 flex-1 rounded-xl border border-emerald-100 bg-white px-3 py-2 text-sm font-black text-slate-800 outline-none transition-colors focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 disabled:opacity-50"
+              required
             >
+              <option value="">Seleccionar perfil</option>
               {ownedPets.map((pet) => (
                 <option key={pet.id} value={pet.id}>
                   {pet.name} · {pet.breed}
@@ -71,6 +74,10 @@ export default function PostComposer({
               ))}
             </select>
           </label>
+        ) : (
+          <div className="rounded-2xl border border-amber-100 bg-amber-50 px-3 py-3 text-sm font-semibold text-amber-700">
+            Primero agrega una mascota a tu perfil para poder publicar.
+          </div>
         )}
 
         {imagePreview && (

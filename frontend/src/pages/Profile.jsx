@@ -1,19 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { currentUser, pets } from "../data/mockData";
 import Avatar from "../components/ui/Avatar";
 import PetCard from "../components/ui/PetCard";
 import Icon from "../components/icons/Icons";
 import { FormField, inputClass, textareaClass } from "../components/ui/FormPrimitives";
-import { createOwnedPet, loadDeletedOwnedPetIds, loadOwnedPets, saveDeletedOwnedPetIds, saveOwnedPets } from "../data/localPets";
+import { usePets } from "../hooks/usePets";
+import { createSessionProfile, getSessionUserId } from "../utils/sessionUser";
+import { getLostPets } from "../services/api";
 
-const LOCAL_ALERTS_KEY = "petconnect:lost-alert-posts";
-
-const activityItems = [
-  { icon: "edit", color: "bg-emerald-100 text-emerald-600", text: "Publicaste en el feed", time: "Hace 2 horas" },
-  { icon: "alert", color: "bg-red-100 text-red-500", text: "Reportaste un avistamiento de Toby", time: "Ayer" },
-  { icon: "users", color: "bg-sky-100 text-sky-600", text: "Seguiste a Rocky", time: "Hace 3 días" },
-];
+const activityItems = [];
 
 const emptyPetForm = {
   name: "",
@@ -76,8 +71,62 @@ async function optimizePetPhoto(file) {
   });
 }
 
+function clean(value) {
+  return value?.trim() ?? "";
+}
+
+function createPetPayload(values, owner) {
+  const species = values.species || "Perro";
+  const id = Date.now();
+
+  return {
+    id,
+    name: clean(values.name),
+    breed: clean(values.breed),
+    species,
+    age: clean(values.age),
+    bio: clean(values.bio),
+    owner,
+    icon: species === "Gato" ? "cat" : "dog",
+    color: species === "Gato" ? "#38BDF8" : "#10B981",
+    followers: 0,
+    posts: 0,
+    photoUrl: values.photoUrl || "",
+    passport: {
+      code: clean(values.passportCode) || `PC-${String(id).slice(-6)}`,
+      microchip: clean(values.microchip) || `SV-2026-${String(id).slice(-4)}`,
+      issuedAt: clean(values.issuedAt) || "Julio 2026",
+      status: values.passportStatus || "Verificado",
+    },
+    veterinaryInfo: {
+      clinic: clean(values.clinic) || "Clinica veterinaria pendiente",
+      veterinarian: clean(values.veterinarian) || "Veterinario pendiente",
+      license: clean(values.license) || "JVPM-0000",
+      phone: clean(values.vetPhone) || "+503 7000-0000",
+      email: clean(values.vetEmail) || "veterinaria@petconnect.sv",
+      address: clean(values.vetAddress) || "San Salvador, El Salvador",
+      lastCheckup: clean(values.lastCheckup) || "Julio 2026",
+      nextCheckup: clean(values.nextCheckup) || "Enero 2027",
+      notes: clean(values.medicalNotes) || "Sin observaciones medicas criticas registradas.",
+    },
+    travelInfo: {
+      destination: clean(values.travelDestination) || "Pais destino por definir",
+      rabiesVaccine: clean(values.rabiesVaccine) || "Vigente",
+      healthCertificate: clean(values.healthCertificate) || "Pendiente de emision",
+      exportPermit: clean(values.exportPermit) || "Pendiente",
+      parasiteTreatment: clean(values.parasiteTreatment) || "Pendiente 24-48h antes del viaje",
+      microchipStandard: clean(values.microchipStandard) || "ISO 11784/11785",
+      airlineCrate: clean(values.airlineCrate) || "Transportadora IATA pendiente de validar",
+      notes: clean(values.travelNotes) || "Validar requisitos especificos con la embajada, aerolinea y autoridad sanitaria del pais destino.",
+    },
+  };
+}
+
 export default function Profile() {
   const navigate = useNavigate();
+  const currentUser = createSessionProfile();
+  const userId = getSessionUserId();
+  const { pets: userPets, savePet } = usePets();
   const [profile, setProfile] = useState({
     name: currentUser.name,
     email: currentUser.email,
@@ -87,15 +136,9 @@ export default function Profile() {
   });
   const [draft, setDraft] = useState(profile);
   const [isEditing, setIsEditing] = useState(false);
-  const [ownedExtraPets, setOwnedExtraPets] = useState(() => loadOwnedPets());
-  const [deletedPetIds, setDeletedPetIds] = useState(() => loadDeletedOwnedPetIds());
   const [showPetForm, setShowPetForm] = useState(false);
   const [petDraft, setPetDraft] = useState(emptyPetForm);
-
-  const userPets = [
-    ...pets.filter((p) => currentUser.pets.includes(p.id) && !deletedPetIds.some((id) => String(id) === String(p.id))),
-    ...ownedExtraPets,
-  ];
+  const [lostPetIds, setLostPetIds] = useState([]);
 
   const setField = (field) => (e) => {
     setDraft((current) => ({ ...current, [field]: e.target.value }));
@@ -137,49 +180,35 @@ export default function Profile() {
     setPetDraft((current) => ({ ...current, photoUrl }));
   };
 
-  const handleAddPet = (e) => {
+  const handleAddPet = async (e) => {
     e.preventDefault();
 
-    const nextPet = createOwnedPet(petDraft, profile.name);
-    const nextPets = [...ownedExtraPets, nextPet];
-    const savedPets = saveOwnedPets(nextPets);
+    const nextPet = createPetPayload(petDraft, profile.name);
+    await savePet({ ...nextPet, userId });
 
-    setOwnedExtraPets(savedPets);
     setPetDraft(emptyPetForm);
     setShowPetForm(false);
   };
 
-  const removeLostAlertsForPet = (petId) => {
-    try {
-      const alerts = JSON.parse(localStorage.getItem(LOCAL_ALERTS_KEY)) ?? [];
-      const nextAlerts = alerts.filter((alert) => String(alert.petId) !== String(petId));
-      localStorage.setItem(LOCAL_ALERTS_KEY, JSON.stringify(nextAlerts));
-      window.dispatchEvent(new Event("petconnect:lost-alerts-updated"));
-    } catch {
-      localStorage.setItem(LOCAL_ALERTS_KEY, JSON.stringify([]));
-    }
-  };
+  useEffect(() => {
+    let isActive = true;
+
+    getLostPets()
+      .then((lostPets) => {
+        if (isActive) setLostPetIds(lostPets.map((alert) => alert.petId));
+      })
+      .catch(() => {
+        if (isActive) setLostPetIds([]);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const handleDeletePet = (pet) => {
     const confirmed = window.confirm(`Eliminar a ${pet.name} de tu perfil? Esta accion quitara su pasaporte y alertas activas.`);
     if (!confirmed) return;
-
-    const nextOwnedExtraPets = ownedExtraPets.filter((ownedPet) => String(ownedPet.id) !== String(pet.id));
-    if (nextOwnedExtraPets.length !== ownedExtraPets.length) {
-      const savedPets = saveOwnedPets(nextOwnedExtraPets);
-      setOwnedExtraPets(savedPets);
-    }
-
-    if (currentUser.pets.some((petId) => String(petId) === String(pet.id))) {
-      const nextDeletedPetIds = deletedPetIds.some((petId) => String(petId) === String(pet.id))
-        ? deletedPetIds
-        : [...deletedPetIds, pet.id];
-
-      setDeletedPetIds(nextDeletedPetIds);
-      saveDeletedOwnedPetIds(nextDeletedPetIds);
-    }
-
-    removeLostAlertsForPet(pet.id);
   };
 
   const visibleProfile = isEditing ? draft : profile;
@@ -305,11 +334,11 @@ export default function Profile() {
               <p className="text-xs text-slate-400">Mascotas</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-800">128</p>
+              <p className="text-2xl font-bold text-slate-800">0</p>
               <p className="text-xs text-slate-400">Seguidores</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-800">45</p>
+              <p className="text-2xl font-bold text-slate-800">0</p>
               <p className="text-xs text-slate-400">Siguiendo</p>
             </div>
           </div>
@@ -345,7 +374,7 @@ export default function Profile() {
               </div>
               <div>
                 <h3 className="font-bold text-slate-800">Nueva mascota</h3>
-                <p className="text-sm text-slate-500">Esta mascota se agregara a tu perfil local.</p>
+                <p className="text-sm text-slate-500">Esta mascota se guardara en la base de datos.</p>
               </div>
             </div>
 
@@ -670,6 +699,7 @@ export default function Profile() {
             <div key={pet.id} className="group relative">
               <PetCard
                 pet={pet}
+                isLost={lostPetIds.some((id) => String(id) === String(pet.id))}
                 onClick={() => navigate(`/passport?pet=${pet.id}`)}
               />
               <button

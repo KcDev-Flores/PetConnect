@@ -1,7 +1,9 @@
-import { currentUser, pets } from "../data/mockData";
+import { createSessionProfile } from "../utils/sessionUser";
+import { usePets } from "./usePets";
 
 export function useProfile() {
-  const userPets = pets.filter((p) => currentUser.pets.includes(p.id));
+  const currentUser = createSessionProfile();
+  const { pets: userPets } = usePets();
 
   return { currentUser, userPets };
 }

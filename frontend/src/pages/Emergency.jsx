@@ -1,13 +1,11 @@
-import { useMemo, useState } from "react";
-import { currentUser, pets } from "../data/mockData";
-import { loadDeletedOwnedPetIds, loadOwnedPets } from "../data/localPets";
+import { useEffect, useMemo, useState } from "react";
 import { useLostPets } from "../hooks/useLostPets";
 import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
 import Icon from "../components/icons/Icons";
 import { FormField, inputClass, textareaClass } from "../components/ui/FormPrimitives";
-
-const LOCAL_ALERTS_KEY = "petconnect:lost-alert-posts";
+import { usePets } from "../hooks/usePets";
+import { createSessionProfile } from "../utils/sessionUser";
 
 function createPassportInfo(pet) {
   return pet.passport ?? {
@@ -16,23 +14,6 @@ function createPassportInfo(pet) {
     issuedAt: "Julio 2026",
     status: "Verificado",
   };
-}
-
-function readLocalAlerts() {
-  try {
-    return JSON.parse(localStorage.getItem(LOCAL_ALERTS_KEY)) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLocalAlerts(alerts) {
-  try {
-    localStorage.setItem(LOCAL_ALERTS_KEY, JSON.stringify(alerts));
-  } catch {
-    const lightweightAlerts = alerts.map((alert, index) => (index === 0 ? alert : { ...alert, photoUrl: "" }));
-    localStorage.setItem(LOCAL_ALERTS_KEY, JSON.stringify(lightweightAlerts));
-  }
 }
 
 function hydrateAlertPhoto(alert, sourcePets) {
@@ -347,19 +328,9 @@ function SelectedAlertDetail({ alert, canResolve, onMarkFound, onBack }) {
 }
 
 export default function Emergency() {
-  const { reports, loading, submitReport } = useLostPets();
-  const [localOwnedPets] = useState(() => loadOwnedPets());
-  const [deletedPetIds] = useState(() => loadDeletedOwnedPetIds());
-  const ownedPets = useMemo(
-    () => [
-      ...pets.filter((pet) =>
-        currentUser.pets.includes(pet.id) && !deletedPetIds.some((id) => String(id) === String(pet.id))
-      ),
-      ...localOwnedPets,
-    ],
-    [deletedPetIds, localOwnedPets]
-  );
-  const [localAlerts, setLocalAlerts] = useState(() => readLocalAlerts());
+  const { reports, loading, submitReport, removeReportFromView } = useLostPets();
+  const currentUser = createSessionProfile();
+  const { pets: ownedPets } = usePets();
   const [selectedAlertId, setSelectedAlertId] = useState(null);
   const [showComposer, setShowComposer] = useState(false);
   const [draft, setDraft] = useState({
@@ -371,18 +342,32 @@ export default function Emergency() {
     notes: "",
   });
 
-  const sourcePets = useMemo(
-    () => [...pets.filter((pet) => !deletedPetIds.some((id) => String(id) === String(pet.id))), ...localOwnedPets],
-    [deletedPetIds, localOwnedPets]
-  );
+  useEffect(() => {
+    if (!ownedPets.length) return undefined;
+
+    let isActive = true;
+    Promise.resolve().then(() => {
+      if (!isActive) return;
+      setDraft((current) => ({
+        ...current,
+        petId: current.petId || ownedPets[0]?.id || "",
+      }));
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [ownedPets]);
+
+  const sourcePets = useMemo(() => ownedPets, [ownedPets]);
   const normalizedReports = useMemo(() => reports.map(normalizeReport), [reports]);
   const alertPosts = useMemo(
-    () => [...localAlerts, ...normalizedReports].map((alert) => hydrateAlertPhoto(alert, sourcePets)),
-    [localAlerts, normalizedReports, sourcePets]
+    () => normalizedReports.map((alert) => hydrateAlertPhoto(alert, sourcePets)),
+    [normalizedReports, sourcePets]
   );
-  const selectedAlert = alertPosts.find((alert) => alert.id === selectedAlertId) ?? null;
+  const selectedAlert = alertPosts.find((alert) => String(alert.id) === String(selectedAlertId)) ?? null;
   const selectedAlertCanResolve = selectedAlert
-    ? localAlerts.some((alert) => String(alert.id) === String(selectedAlert.id))
+    ? ownedPets.some((pet) => String(pet.id) === String(selectedAlert.petId))
     : false;
   const selectedPet = ownedPets.find((pet) => String(pet.id) === String(draft.petId)) ?? ownedPets[0] ?? null;
   const selectedPetPassport = selectedPet ? createPassportInfo(selectedPet) : null;
@@ -397,10 +382,7 @@ export default function Emergency() {
 
     const alertPhoto = await optimizeAlertPhoto(selectedPet.photoUrl);
     const alert = createAlertFromDraft(draft, selectedPet, alertPhoto);
-    const nextAlerts = [alert, ...localAlerts];
 
-    setLocalAlerts(nextAlerts);
-    saveLocalAlerts(nextAlerts);
     setSelectedAlertId(null);
     setShowComposer(false);
     setDraft({
@@ -423,16 +405,14 @@ export default function Emergency() {
       reward: alert.reward || null,
       passportCode: alert.passport.code,
       microchip: alert.passport.microchip,
+      petId: alert.petId,
+      photoUrl: alert.photoUrl,
     });
   };
 
   const handleMarkFound = (alertId) => {
-    const nextAlerts = localAlerts.filter((alert) => String(alert.id) !== String(alertId));
-
-    setLocalAlerts(nextAlerts);
-    saveLocalAlerts(nextAlerts);
+    removeReportFromView(alertId);
     setSelectedAlertId((currentId) => (String(currentId) === String(alertId) ? null : currentId));
-    window.dispatchEvent(new Event("petconnect:lost-alerts-updated"));
   };
 
   if (loading) {
@@ -608,7 +588,7 @@ export default function Emergency() {
                 alert={alert}
                 isSelected={false}
                 onClick={() => setSelectedAlertId(alert.id)}
-                canResolve={localAlerts.some((localAlert) => String(localAlert.id) === String(alert.id))}
+                canResolve={ownedPets.some((pet) => String(pet.id) === String(alert.petId))}
                 onMarkFound={handleMarkFound}
               />
             ))}

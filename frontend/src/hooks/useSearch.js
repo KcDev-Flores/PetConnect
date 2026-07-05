@@ -1,53 +1,53 @@
-import { useState, useMemo } from "react";
-import { breeds, currentUser, pets } from "../data/mockData";
-import { loadDeletedOwnedPetIds, loadOwnedPets } from "../data/localPets";
+import { useState, useMemo, useEffect } from "react";
+import { getPublicPets } from "../services/api";
 
 export function useSearch() {
   const [query, setQuery] = useState("");
   const [species, setSpecies] = useState("Todos");
   const [size, setSize] = useState("Todos");
-  const [localPets] = useState(() => loadOwnedPets());
-  const [deletedPetIds] = useState(() => loadDeletedOwnedPetIds());
-
-  const allPets = useMemo(
-    () => [
-      ...pets.filter((pet) =>
-        !currentUser.pets.includes(pet.id) || !deletedPetIds.some((id) => String(id) === String(pet.id))
-      ),
-      ...localPets,
-    ],
-    [deletedPetIds, localPets]
-  );
-  const speciesOptions = ["Todos", ...new Set(breeds.map((b) => b.species))];
-  const sizeOptions = ["Todos", ...new Set(breeds.map((b) => b.size))];
+  const [allPets, setAllPets] = useState([]);
+  const [loading, setLoading] = useState(true);
   const normalizedQuery = query.trim().toLowerCase();
 
-  const filteredBreeds = useMemo(() => {
-    return breeds.filter((b) => {
-      const matchQuery =
-        !normalizedQuery ||
-        b.name.toLowerCase().includes(normalizedQuery) ||
-        b.origin.toLowerCase().includes(normalizedQuery);
-      const matchSpecies = species === "Todos" || b.species === species;
-      const matchSize = size === "Todos" || b.size === size;
-      return matchQuery && matchSpecies && matchSize;
-    });
-  }, [normalizedQuery, species, size]);
+  useEffect(() => {
+    let isActive = true;
+
+    getPublicPets()
+      .then((pets) => {
+        if (!isActive) return;
+        setAllPets(pets);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setAllPets([]);
+        setLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const speciesOptions = useMemo(
+    () => ["Todos", ...new Set(allPets.map((pet) => pet.species).filter(Boolean))],
+    [allPets]
+  );
+  const sizeOptions = ["Todos"];
+  const filteredBreeds = [];
 
   const filteredPets = useMemo(() => {
-    return allPets.filter((p) => {
-      const breedInfo = breeds.find((breed) => breed.name === p.breed);
+    return allPets.filter((pet) => {
       const matchQuery =
         !normalizedQuery ||
-        p.name.toLowerCase().includes(normalizedQuery) ||
-        p.breed.toLowerCase().includes(normalizedQuery) ||
-        p.owner.toLowerCase().includes(normalizedQuery) ||
-        p.bio.toLowerCase().includes(normalizedQuery);
-      const matchSpecies = species === "Todos" || p.species === species;
-      const matchSize = size === "Todos" || breedInfo?.size === size;
-      return matchQuery && matchSpecies && matchSize;
+        pet.name.toLowerCase().includes(normalizedQuery) ||
+        pet.breed.toLowerCase().includes(normalizedQuery) ||
+        pet.owner.toLowerCase().includes(normalizedQuery) ||
+        pet.bio.toLowerCase().includes(normalizedQuery);
+      const matchSpecies = species === "Todos" || pet.species === species;
+      return matchQuery && matchSpecies;
     });
-  }, [allPets, normalizedQuery, species, size]);
+  }, [allPets, normalizedQuery, species]);
 
   return {
     query, setQuery,
@@ -55,5 +55,6 @@ export function useSearch() {
     size, setSize,
     speciesOptions, sizeOptions,
     filteredBreeds, filteredPets, allPets,
+    loading,
   };
 }
