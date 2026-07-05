@@ -1,0 +1,555 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Icon from "../icons/Icons";
+
+const STORIES_KEY = "petconnect_stories";
+const VIEWED_STORIES_KEY = "petconnect_viewed_stories";
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+const STORY_DURATION_MS = 7000;
+
+function readImageAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function optimizeStoryImage(file) {
+  const originalImage = await readImageAsDataUrl(file);
+  const image = new Image();
+
+  return new Promise((resolve) => {
+    image.onload = () => {
+      const maxSize = 900;
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+
+      const context = canvas.getContext("2d");
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.72));
+    };
+
+    image.onerror = () => resolve(originalImage);
+    image.src = originalImage;
+  });
+}
+
+function getStoredStories() {
+  try {
+    const now = Date.now();
+    const stories = JSON.parse(localStorage.getItem(STORIES_KEY)) ?? [];
+    const activeStories = stories.filter((story) => story.expiresAt > now);
+    localStorage.setItem(STORIES_KEY, JSON.stringify(activeStories));
+    return activeStories;
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredStories(stories) {
+  try {
+    localStorage.setItem(STORIES_KEY, JSON.stringify(stories));
+    return stories;
+  } catch {
+    const lightweightStories = stories.map((story, index) => index === 0 ? story : { ...story, image: null });
+    try {
+      localStorage.setItem(STORIES_KEY, JSON.stringify(lightweightStories));
+      return lightweightStories;
+    } catch {
+      const extraLightStories = lightweightStories.map((story) => ({ ...story, image: null }));
+      localStorage.setItem(STORIES_KEY, JSON.stringify(extraLightStories));
+      return extraLightStories;
+    }
+  }
+}
+
+function getViewedStoryIds() {
+  try {
+    return JSON.parse(localStorage.getItem(VIEWED_STORIES_KEY)) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function saveViewedStoryIds(ids) {
+  localStorage.setItem(VIEWED_STORIES_KEY, JSON.stringify(ids));
+}
+
+function getTimeLeft(expiresAt) {
+  const remainingHours = Math.max(1, Math.ceil((expiresAt - Date.now()) / (60 * 60 * 1000)));
+  return `${remainingHours}h`;
+}
+
+function getStoryProfileKey(story) {
+  return story.petId ? `pet-${story.petId}` : `story-${story.id}`;
+}
+
+function groupStoriesByProfile(stories) {
+  const groups = [];
+  const groupMap = new Map();
+
+  stories.forEach((story) => {
+    const profileKey = getStoryProfileKey(story);
+    const currentGroup = groupMap.get(profileKey);
+
+    if (currentGroup) {
+      currentGroup.stories.push(story);
+      return;
+    }
+
+    const group = {
+      id: profileKey,
+      preview: story,
+      stories: [story],
+    };
+    groupMap.set(profileKey, group);
+    groups.push(group);
+  });
+
+  return groups;
+}
+
+function StoryAvatar({ story, count, viewed, onOpen }) {
+  const ringClass = viewed
+    ? "bg-slate-200"
+    : "bg-gradient-to-tr from-amber-400 via-rose-400 to-emerald-400";
+
+  return (
+    <button type="button" onClick={() => onOpen(story)} className="group flex w-[78px] shrink-0 flex-col items-center gap-2">
+      <div className={`relative grid h-[70px] w-[70px] place-items-center rounded-full p-[3px] transition-transform group-active:scale-95 ${ringClass}`}>
+        <div className="grid h-full w-full place-items-center overflow-hidden rounded-full bg-white p-1">
+          {story.petPhotoUrl ? (
+            <img src={story.petPhotoUrl} alt={story.name} className="h-full w-full rounded-full object-cover" />
+          ) : (
+            <div
+              className="grid h-full w-full place-items-center rounded-full text-emerald-700 shadow-inner"
+              style={{ backgroundColor: story.color ? `${story.color}22` : "#F8FAFC" }}
+            >
+              <Icon name={story.icon} size={26} />
+            </div>
+          )}
+        </div>
+        {story.expiresAt && (
+          <span className="absolute -bottom-1 rounded-full border border-white bg-slate-900 px-2 py-0.5 text-[9px] font-black text-white">
+            {getTimeLeft(story.expiresAt)}
+          </span>
+        )}
+        {count > 1 && (
+          <span className="absolute -right-1 -top-1 grid h-6 min-w-6 place-items-center rounded-full border-2 border-white bg-emerald-500 px-1 text-[10px] font-black text-white">
+            {count}
+          </span>
+        )}
+      </div>
+      <span className="max-w-[78px] truncate text-center text-xs font-semibold leading-tight text-slate-700">
+        {story.name}
+        <span className="block text-[10px] font-medium text-slate-400">
+          {viewed ? "Vista" : count > 1 ? `${count} historias` : story.place || "Nueva"}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function StoryViewer({ stories, activeStoryId, onClose, onDelete, onGroupBoundary, onSelectStory, onViewed }) {
+  const currentIndex = stories.findIndex((story) => String(story.id) === String(activeStoryId));
+  const story = currentIndex >= 0 ? stories[currentIndex] : null;
+  const [progress, setProgress] = useState({ storyId: null, value: 0 });
+  const visibleProgress = progress.storyId === story?.id ? progress.value : 0;
+
+  const showStoryAt = useCallback((nextIndex) => {
+    if (!stories.length) return;
+
+    if (nextIndex < 0) {
+      onGroupBoundary("previous");
+      return;
+    }
+
+    if (nextIndex >= stories.length) {
+      onGroupBoundary("next");
+      return;
+    }
+
+    onSelectStory(stories[nextIndex].id);
+  }, [onGroupBoundary, onSelectStory, stories]);
+
+  const showPrevious = useCallback(() => {
+    showStoryAt(currentIndex - 1);
+  }, [currentIndex, showStoryAt]);
+
+  const showNext = useCallback(() => {
+    showStoryAt(currentIndex + 1);
+  }, [currentIndex, showStoryAt]);
+
+  useEffect(() => {
+    if (!story) return undefined;
+
+    onViewed(story.id);
+
+    const startedAt = Date.now();
+    const progressInterval = window.setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      setProgress({ storyId: story.id, value: Math.min(100, (elapsed / STORY_DURATION_MS) * 100) });
+    }, 100);
+    const nextTimer = window.setTimeout(showNext, STORY_DURATION_MS);
+
+    return () => {
+      window.clearInterval(progressInterval);
+      window.clearTimeout(nextTimer);
+    };
+  }, [onViewed, showNext, story]);
+
+  if (!story) return null;
+  const mapsUrl = story.place ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(story.place)}` : null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 px-4 py-6">
+      <div className="relative h-full max-h-[800px] w-full max-w-[430px] overflow-hidden rounded-[2rem] bg-slate-900 shadow-2xl">
+        <div className="absolute left-4 right-4 top-4 z-10">
+          <div className="flex gap-1.5">
+            {stories.map((item, index) => (
+              <div key={item.id} className="h-1 flex-1 overflow-hidden rounded-full bg-white/25">
+                <div
+                  className="h-full rounded-full bg-white transition-[width] duration-100"
+                  style={{
+                    width: index < currentIndex ? "100%" : index === currentIndex ? `${visibleProgress}%` : "0%",
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-white/20 text-white">
+                {story.petPhotoUrl ? <img src={story.petPhotoUrl} alt="" className="h-full w-full object-cover" /> : <Icon name={story.icon} size={20} />}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-white">{story.name}</p>
+                <p className="text-xs font-semibold text-white/70">
+                  {story.expiresAt ? `Disponible por ${getTimeLeft(story.expiresAt)}` : "Historia destacada"}
+                </p>
+              </div>
+            </div>
+            <button type="button" onClick={onClose} className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-black text-white backdrop-blur transition-colors hover:bg-white/25">
+              Cerrar
+            </button>
+          </div>
+        </div>
+
+        <div className="absolute inset-x-0 bottom-0 z-10 h-56 bg-gradient-to-t from-slate-950 via-slate-950/55 to-transparent" />
+
+        <button
+          type="button"
+          onClick={showPrevious}
+          className="absolute left-3 top-1/2 z-30 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-white backdrop-blur transition-colors hover:bg-white/25"
+          aria-label="Historia anterior"
+        >
+          <Icon name="arrow-left" size={21} />
+        </button>
+        <button
+          type="button"
+          onClick={showNext}
+          className="absolute right-3 top-1/2 z-30 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-white backdrop-blur transition-colors hover:bg-white/25"
+          aria-label="Siguiente historia"
+        >
+          <Icon name="arrow-right" size={21} />
+        </button>
+
+        <button
+          type="button"
+          onClick={showPrevious}
+          className="absolute bottom-24 left-0 top-24 z-20 w-1/3"
+          aria-label="Anterior"
+        />
+        <button
+          type="button"
+          onClick={showNext}
+          className="absolute bottom-24 right-0 top-24 z-20 w-1/3"
+          aria-label="Siguiente"
+        />
+
+        {story.image ? (
+          <img src={story.image} alt={story.name} className="h-full w-full object-cover" />
+        ) : (
+          <div className={`flex h-full flex-col items-center justify-center bg-gradient-to-br ${story.tone ?? "from-emerald-400 via-sky-300 to-amber-300"} p-8 text-center text-white`}>
+            <div className="grid h-28 w-28 place-items-center rounded-[2rem] bg-white/20 backdrop-blur">
+              <Icon name={story.icon} size={58} />
+            </div>
+            <h3 className="mt-5 text-3xl font-black">{story.name}</h3>
+            <p className="mt-2 text-sm font-semibold text-white/80">{story.place}</p>
+          </div>
+        )}
+
+        <div className="absolute bottom-5 left-4 right-4 z-20 space-y-3">
+          {story.caption && (
+            <div className="rounded-3xl bg-white/12 p-4 text-white shadow-xl backdrop-blur">
+              <p className="text-sm font-semibold leading-relaxed">{story.caption}</p>
+            </div>
+          )}
+
+          {story.place && (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex w-fit max-w-full items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-black text-slate-900 shadow-lg transition-colors hover:bg-white"
+            >
+              <Icon name="pin" size={16} className="shrink-0 text-sky-600" />
+              <span className="truncate">{story.place}</span>
+            </a>
+          )}
+        </div>
+
+        {story.isOwner && (
+          <button
+            type="button"
+            onClick={() => onDelete(story.id)}
+            className="absolute right-4 top-20 z-20 rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white backdrop-blur transition-colors hover:bg-white/25"
+          >
+            Eliminar historia
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StoryEditor({ draft, ownedPets, activePet, onChange, onPublish, onCancel }) {
+  if (!draft) return null;
+  const selectedPet = ownedPets.find((pet) => String(pet.id) === String(draft.petId)) ?? activePet;
+  const canPublish = Boolean(draft.petId);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 px-4 py-6">
+      <form onSubmit={onPublish} className="relative h-full max-h-[800px] w-full max-w-[430px] overflow-hidden rounded-[2rem] bg-slate-900 shadow-2xl">
+        <img src={draft.image} alt="Vista previa de historia" className="h-full w-full object-cover" />
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-slate-950/85 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-slate-950 via-slate-950/75 to-transparent" />
+
+        <div className="absolute left-4 right-4 top-4 flex items-center justify-between">
+          <button type="button" onClick={onCancel} className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white backdrop-blur transition-colors hover:bg-white/25">
+            Cancelar
+          </button>
+          <p className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white backdrop-blur">
+            Nueva historia
+          </p>
+        </div>
+
+        <div className="absolute bottom-5 left-4 right-4 space-y-3">
+          <label className="block rounded-3xl bg-white/95 p-4 shadow-xl backdrop-blur">
+            <span className="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">Publicar historia como</span>
+            <select
+              value={draft.petId ?? selectedPet?.id ?? ""}
+              onChange={(event) => onChange({ ...draft, petId: event.target.value })}
+              className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-3 py-2.5 text-sm font-black text-slate-800 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+              required
+            >
+              <option value="">Seleccionar perfil</option>
+              {ownedPets.map((pet) => (
+                <option key={pet.id} value={pet.id}>
+                  {pet.name} · {pet.breed}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block rounded-3xl bg-white/95 p-4 shadow-xl backdrop-blur">
+            <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Descripcion</span>
+            <textarea
+              value={draft.caption}
+              onChange={(event) => onChange({ ...draft, caption: event.target.value })}
+              placeholder="Escribe algo sobre esta historia..."
+              rows={3}
+              className="mt-2 w-full resize-none bg-transparent text-sm font-semibold leading-relaxed text-slate-800 outline-none placeholder:text-slate-400"
+            />
+          </label>
+
+          <label className="flex items-center gap-3 rounded-3xl bg-white/95 px-4 py-3 shadow-xl backdrop-blur">
+            <Icon name="pin" size={18} className="shrink-0 text-sky-600" />
+            <input
+              value={draft.place}
+              onChange={(event) => onChange({ ...draft, place: event.target.value })}
+              placeholder="Agregar ubicacion"
+              className="min-w-0 flex-1 bg-transparent text-sm font-black text-slate-800 outline-none placeholder:font-semibold placeholder:text-slate-400"
+            />
+          </label>
+
+          <button
+            type="submit"
+            disabled={!canPublish}
+            className="w-full rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-xl transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Compartir historia
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+export default function Stories({ ownedPets = [], activePet = null }) {
+  const [userStories, setUserStories] = useState(() => getStoredStories());
+  const [activeStoryId, setActiveStoryId] = useState(null);
+  const [viewedStoryIds, setViewedStoryIds] = useState(() => getViewedStoryIds());
+  const [storyDraft, setStoryDraft] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setUserStories(getStoredStories());
+    }, 60 * 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  const stories = useMemo(() => userStories, [userStories]);
+  const storyGroups = useMemo(() => groupStoriesByProfile(stories), [stories]);
+  const activeGroup = storyGroups.find((group) =>
+    group.stories.some((story) => String(story.id) === String(activeStoryId))
+  );
+  const activeGroupIndex = storyGroups.findIndex((group) => group.id === activeGroup?.id);
+
+  const handleViewedStory = useCallback((storyId) => {
+    setViewedStoryIds((current) => {
+      if (current.some((id) => String(id) === String(storyId))) return current;
+
+      const nextIds = [...current, storyId];
+      saveViewedStoryIds(nextIds);
+      return nextIds;
+    });
+  }, []);
+
+  const handleGroupBoundary = useCallback((direction) => {
+    const nextGroupIndex = direction === "next" ? activeGroupIndex + 1 : activeGroupIndex - 1;
+    const nextGroup = storyGroups[nextGroupIndex];
+
+    if (!nextGroup) {
+      setActiveStoryId(null);
+      return;
+    }
+
+    const nextStory = direction === "next"
+      ? nextGroup.stories[0]
+      : nextGroup.stories[nextGroup.stories.length - 1];
+    setActiveStoryId(nextStory?.id ?? null);
+  }, [activeGroupIndex, storyGroups]);
+
+  const handleStoryUpload = async (file) => {
+    if (!file) return;
+
+    setIsUploading(true);
+    const image = await optimizeStoryImage(file);
+    setStoryDraft({ image, caption: "", place: "", petId: "" });
+    setIsUploading(false);
+  };
+
+  const handlePublishStory = (event) => {
+    event.preventDefault();
+    if (!storyDraft?.image) return;
+
+    const now = Date.now();
+    const storyPet = ownedPets.find((pet) => String(pet.id) === String(storyDraft.petId));
+    if (!storyPet) return;
+
+    const story = {
+      id: `story-${now}`,
+      petId: storyPet?.id ?? null,
+      name: storyPet?.name ?? "Tu historia",
+      icon: storyPet?.icon ?? "paw",
+      color: storyPet?.color,
+      petPhotoUrl: storyPet?.photoUrl ?? "",
+      image: storyDraft.image,
+      caption: storyDraft.caption.trim(),
+      place: storyDraft.place.trim(),
+      isOwner: true,
+      createdAt: now,
+      expiresAt: now + DAY_IN_MS,
+    };
+
+    const nextStories = [story, ...getStoredStories()].slice(0, 12);
+    const savedStories = saveStoredStories(nextStories);
+    setUserStories(savedStories);
+    setActiveStoryId(null);
+    setStoryDraft(null);
+  };
+
+  const handleDeleteStory = (storyId) => {
+    const nextStories = userStories.filter((story) => story.id !== storyId);
+    const savedStories = saveStoredStories(nextStories);
+    setUserStories(savedStories);
+    setActiveStoryId(null);
+  };
+
+  return (
+    <>
+      <div className="flex gap-5 overflow-x-auto px-1 pb-3 pt-1 select-none">
+        <label className="group flex w-[78px] shrink-0 cursor-pointer flex-col items-center gap-2">
+          <div className="relative grid h-[70px] w-[70px] place-items-center rounded-full bg-slate-200 p-[3px] transition-transform group-active:scale-95">
+            <div className="grid h-full w-full place-items-center rounded-full bg-white p-1">
+              <div className="grid h-full w-full place-items-center rounded-full bg-emerald-50 text-emerald-700 shadow-inner">
+                <Icon name={isUploading ? "upload" : "plus"} size={24} />
+              </div>
+            </div>
+            <span className="absolute bottom-0 right-0 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-emerald-500 text-white">
+              <Icon name="camera" size={13} />
+            </span>
+          </div>
+          <span className="max-w-[78px] truncate text-center text-xs font-semibold leading-tight text-slate-700">
+            {isUploading ? "Subiendo" : "Nueva historia"}
+            <span className="block text-[10px] font-medium text-slate-400">24 horas</span>
+          </span>
+          <input
+            type="file"
+            accept="image/*"
+            disabled={isUploading}
+            className="sr-only"
+            onChange={(event) => {
+              handleStoryUpload(event.target.files?.[0] ?? null);
+              event.target.value = "";
+            }}
+          />
+        </label>
+
+        {storyGroups.map((group) => {
+          const firstUnviewedStory = group.stories.find((story) =>
+            !viewedStoryIds.some((id) => String(id) === String(story.id))
+          );
+          const storyToOpen = firstUnviewedStory ?? group.stories[0];
+          const groupViewed = group.stories.every((story) =>
+            viewedStoryIds.some((id) => String(id) === String(story.id))
+          );
+
+          return (
+          <StoryAvatar
+            key={group.id}
+            story={group.preview}
+            count={group.stories.length}
+            viewed={groupViewed}
+            onOpen={() => setActiveStoryId(storyToOpen.id)}
+          />
+          );
+        })}
+      </div>
+
+      <StoryViewer
+        stories={activeGroup?.stories ?? []}
+        activeStoryId={activeStoryId}
+        onClose={() => setActiveStoryId(null)}
+        onDelete={handleDeleteStory}
+        onGroupBoundary={handleGroupBoundary}
+        onSelectStory={setActiveStoryId}
+        onViewed={handleViewedStory}
+      />
+      <StoryEditor
+        draft={storyDraft}
+        ownedPets={ownedPets}
+        activePet={activePet}
+        onChange={setStoryDraft}
+        onPublish={handlePublishStory}
+        onCancel={() => setStoryDraft(null)}
+      />
+    </>
+  );
+}
