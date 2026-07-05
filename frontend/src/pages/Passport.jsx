@@ -26,6 +26,10 @@ function readLocalEmergencyAlerts() {
   }
 }
 
+function getLostPetIds() {
+  return readLocalEmergencyAlerts().map((alert) => alert.petId);
+}
+
 function saveLocalEmergencyAlerts(alerts) {
   try {
     localStorage.setItem(LOCAL_ALERTS_KEY, JSON.stringify(alerts));
@@ -415,8 +419,9 @@ function TravelDocumentsCard({ travelInfo, passport, isEditing, onChange }) {
   );
 }
 
-function AnimalPassportCard({ pet, isSelected, onClick }) {
+function AnimalPassportCard({ pet, isSelected, isLost, onClick }) {
   const passport = pet.passport ?? createPassportInfo(pet);
+  const frameClass = isLost ? "border-red-400 ring-red-200" : "border-emerald-400 ring-emerald-200";
 
   return (
     <button
@@ -431,7 +436,7 @@ function AnimalPassportCard({ pet, isSelected, onClick }) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 to-transparent" />
         <div className="absolute bottom-3 left-4 flex items-center gap-3">
-          <div className="rounded-2xl bg-white p-1.5 shadow-lg">
+          <div className={`rounded-2xl border-2 bg-white p-1.5 shadow-lg ring-2 ${frameClass}`}>
             {pet.photoUrl ? (
               <img src={pet.photoUrl} alt={pet.name} className="h-12 w-12 rounded-xl object-cover" />
             ) : (
@@ -449,6 +454,7 @@ function AnimalPassportCard({ pet, isSelected, onClick }) {
         <div className="flex flex-wrap gap-2">
           <Badge variant="info">{pet.species}</Badge>
           <Badge>{pet.age}</Badge>
+          {isLost && <Badge variant="danger">Perdido</Badge>}
           <Badge variant={passport.status === "Verificado" ? "success" : "warning"}>{passport.status}</Badge>
         </div>
         <p className="mt-3 line-clamp-2 text-sm text-slate-500">{pet.bio}</p>
@@ -492,6 +498,7 @@ export default function Passport() {
     reward: "",
     notes: "",
   });
+  const [lostPetIds, setLostPetIds] = useState(() => getLostPetIds());
   const [lostAlertCreated, setLostAlertCreated] = useState(false);
   const ownedPetProfiles = petProfiles.filter((pet) => loggedPetIds.includes(pet.id));
   const selectedPet = ownedPetProfiles.find((pet) => pet.id === selectedPetId) ?? null;
@@ -581,6 +588,11 @@ export default function Passport() {
       reward: "",
       notes: "",
     });
+    setLostPetIds((current) =>
+      current.some((id) => String(id) === String(visiblePet.id))
+        ? current
+        : [...current, visiblePet.id]
+    );
     setLostAlertCreated(true);
     setShowLostForm(false);
   };
@@ -603,6 +615,10 @@ export default function Passport() {
   const passportInfo = visiblePet ? visiblePet.passport ?? createPassportInfo(visiblePet) : null;
   const veterinaryInfo = visiblePet ? visiblePet.veterinaryInfo ?? createVeterinaryInfo(visiblePet) : null;
   const travelInfo = visiblePet ? visiblePet.travelInfo ?? createTravelInfo(visiblePet) : null;
+  const visiblePetIsLost = Boolean(visiblePet && lostPetIds.some((id) => String(id) === String(visiblePet.id)));
+  const photoFrameClass = visiblePetIsLost
+    ? "border-red-400 ring-red-200"
+    : "border-emerald-400 ring-emerald-200";
 
   return (
     <div className="space-y-6">
@@ -648,6 +664,7 @@ export default function Passport() {
                 key={pet.id}
                 pet={pet}
                 isSelected={false}
+                isLost={lostPetIds.some((id) => String(id) === String(pet.id))}
                 onClick={() => handleSelectPet(pet)}
               />
             ))}
@@ -686,7 +703,7 @@ export default function Passport() {
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-slate-900/10 to-transparent" />
               <div className="absolute bottom-5 left-6 right-6 flex items-end justify-between gap-4">
                 <div className="flex items-end gap-4">
-                  <div className="rounded-3xl bg-white p-2 shadow-xl">
+                  <div className={`rounded-3xl border-4 bg-white p-2 shadow-xl ring-4 ${photoFrameClass}`}>
                     {visiblePet.photoUrl ? (
                       <img
                         src={visiblePet.photoUrl}
@@ -779,6 +796,7 @@ export default function Passport() {
                     <div className="flex gap-2 mt-2">
                       <Badge variant="info">{visiblePet.species}</Badge>
                       <Badge>{visiblePet.age}</Badge>
+                      {visiblePetIsLost && <Badge variant="danger">Perdido</Badge>}
                       <Badge>{passportInfo.code}</Badge>
                     </div>
                     <p className="text-slate-600 mt-4 leading-relaxed">{visiblePet.bio}</p>
