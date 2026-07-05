@@ -28,7 +28,9 @@ export async function getLostPets() {
   }
   const res = await fetch(`${BASE_URL}/get-lost-pets`);
   if (!res.ok) throw new Error("Error al obtener reportes");
-  return res.json();
+  const data = await res.json();
+  // n8n a veces devuelve { "data": [...] }, lo desenvolvemos para evitar crasheos
+  return data.data || data;
 }
 
 /**
@@ -68,7 +70,9 @@ export async function getUserPets(userId) {
   }
   const res = await fetch(`${BASE_URL}/get-user-pets?userId=${userId}`);
   if (!res.ok) throw new Error("Error al obtener mascotas");
-  return res.json();
+  const data = await res.json();
+  // n8n a veces devuelve { "items": [...] }, lo desenvolvemos
+  return data.items || data.data || data;
 }
 
 /**
