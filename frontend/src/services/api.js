@@ -51,49 +51,6 @@ export async function reportLostPet(data) {
   return res.json();
 }
 
-/**
- * Agrega un avistamiento a un reporte existente.
- * POST /webhook/add-sighting
- * Body: { reportId, comment, location, lat?, lng? }
- * Response: { status: "ok" }
- */
-export async function addSighting(data) {
-  if (USE_MOCK) {
-    console.log("[MOCK] addSighting:", data);
-    return { status: "ok" };
-  }
-  const res = await fetch(`${BASE_URL}/add-sighting`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Error al enviar avistamiento");
-  return res.json();
-}
-
-// ──────────────────────────────────────────
-// BÚSQUEDA POR FOTO (IA)
-// ──────────────────────────────────────────
-
-/**
- * Envía una foto para búsqueda por IA (Fal + Exa).
- * POST /webhook/search-by-photo
- * Body: { photoUrl: string }
- * Response: { matchFound: boolean, pet?: PetMatch }
- */
-export async function searchByPhoto(photoUrl) {
-  if (USE_MOCK) {
-    console.log("[MOCK] searchByPhoto:", photoUrl);
-    return { matchFound: false };
-  }
-  const res = await fetch(`${BASE_URL}/search-by-photo`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ photoUrl }),
-  });
-  if (!res.ok) throw new Error("Error en búsqueda por foto");
-  return res.json();
-}
 
 // ──────────────────────────────────────────
 // MASCOTAS REGISTRADAS (PASAPORTE)
@@ -173,6 +130,7 @@ export async function createPost(data) {
   return res.json();
 }
 
+
 // ──────────────────────────────────────────
 // AUTENTICACIÓN
 // ──────────────────────────────────────────
@@ -220,3 +178,4 @@ export async function register(name, email, password) {
   if (!res.ok) throw new Error("Error al registrar usuario");
   return res.json();
 }
+
