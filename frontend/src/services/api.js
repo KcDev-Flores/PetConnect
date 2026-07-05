@@ -29,8 +29,24 @@ export async function getLostPets() {
   const res = await fetch(`${BASE_URL}/get-lost-pets`);
   if (!res.ok) throw new Error("Error al obtener reportes");
   const data = await res.json();
-  // n8n a veces devuelve { "data": [...] }, lo desenvolvemos para evitar crasheos
-  return data.data || data;
+  const rawData = data.data || data.items || data;
+  const dataArray = Array.isArray(rawData) ? rawData : [rawData];
+
+  return dataArray.map(report => ({
+    id: report.id,
+    petId: report.pet_id || report.petId,
+    petName: report.pet_name || report.petName,
+    species: report.species,
+    breed: report.breed,
+    description: report.description,
+    lastSeen: report.last_seen || report.lastSeen,
+    lastSeenDate: report.last_seen_date || report.lastSeenDate,
+    ownerPhone: report.owner_phone || report.ownerPhone || report.contactPhone,
+    reward: report.reward,
+    photoUrl: report.photo_url || report.photoUrl,
+    status: report.status || "Perdido",
+    time: report.time || report.created_at,
+  }));
 }
 
 /**
@@ -49,7 +65,7 @@ export async function reportLostPet(data) {
   const payloadParaN8n = {
     petId: data.petId || "00000000-0000-0000-0000-000000000000",
     pet_name: data.petName || "Desconocido",
-    lost_pets: "00000000-0000-0000-0000-000000000000",
+    lost_pets: data.petId || "00000000-0000-0000-0000-000000000000",
     description: data.description,
     lastSeen: data.lastSeen,
     reward: data.reward,

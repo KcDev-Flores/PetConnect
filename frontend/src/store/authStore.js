@@ -79,6 +79,16 @@ export const useAuthStore = create((set, get) => ({
     set({ session: null, user: null, error: null });
   },
 
+  /** Actualiza la metadata del usuario en Supabase (nombre, foto, teléfono, etc.) */
+  updateProfile: async (updates) => {
+    const { data, error } = await supabase.auth.updateUser({
+      data: updates
+    });
+    if (error) throw error;
+    set({ user: data.user });
+    return data.user;
+  },
+
   /**
    * Token JWT vigente para llamadas a n8n:
    *   headers: { Authorization: `Bearer ${getAccessToken()}` }

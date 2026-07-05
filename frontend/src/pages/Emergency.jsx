@@ -97,7 +97,7 @@ function normalizeReport(report) {
     passport,
     lostLocation: report.lostLocation ?? report.lastSeen,
     lostDate: report.lostDate ?? report.lastSeenDate ?? "Hoy",
-    contactPhone: report.contactPhone ?? report.phone,
+    contactPhone: report.ownerPhone ?? report.contactPhone ?? report.phone,
     reward: report.reward ?? "",
     notes: report.notes ?? report.description,
     createdAtLabel: report.createdAtLabel ?? report.time ?? "Alerta activa",
@@ -415,6 +415,8 @@ export default function Emergency() {
     });
 
     await submitReport({
+      petId: alert.petId,
+      photoUrl: alert.photoUrl,
       petName: alert.petName,
       breed: alert.breed,
       species: alert.species,
