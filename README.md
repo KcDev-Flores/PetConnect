@@ -41,3 +41,9 @@ Todo el trabajo vive en el repositorio del equipo. Cada aporte de P5 se entregó
 
 ### 🎙️ Wispr Flow — Dictado por voz con IA
 Usamos Wispr Flow como herramienta de productividad durante el desarrollo: dictado por voz con IA que convierte lo hablado en texto limpio y bien formateado en cualquier aplicación. Nos permitió redactar instrucciones, prompts y comunicación del equipo mucho más rápido que escribiendo, agilizando la coordinación entre los organizadores y las iteraciones con el agente de IA.
+
+### Cursor y Codex — Desarrollo asistido
+Codex fue el entorno principal de desarrollo para construir y organizar el frontend en React + Vite. Se utilizó como asistente técnico para acelerar la implementación de componentes, páginas, hooks y la capa de servicios (`api.js`), además de apoyar en refactors, validación de contratos de datos y resolución de errores durante la integración con n8n. En la práctica, el equipo definía la arquitectura y decisiones funcionales, y Codex ayudaba a traducirlas rápidamente a código mantenible, reduciendo tiempos de iteración y facilitando la entrega de funcionalidades. Cursor nos ayudo a estudiar y darnos asistencias de las nuevas tecnologias que no habiamos usado y que esta vez tuvimos la oportunidad.
+
+### Video de la Pagina 
+https://youtu.be/tQyzBDEg5K0
