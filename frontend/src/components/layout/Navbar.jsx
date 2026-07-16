@@ -63,12 +63,7 @@ export default function Navbar() {
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
-          <Link
-            to="/login?mode=register"
-            className="hidden text-xs font-semibold text-slate-500 transition-colors hover:text-emerald-700 sm:block"
-          >
-            No tienes cuenta? <span className="font-black text-emerald-600">Registrate aqui</span>
-          </Link>
+
           <button
             type="button"
             onClick={handleLogout}
